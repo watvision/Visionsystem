@@ -2,15 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.watvision.mainapp">
 
-
-    <uses-permission android:name="android.permission.CAMERA"
-        android:required="true"/>
-
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.front.autofocus" android:required="false"/>
-
+    <uses-permission android:name="android.permission.CAMERA"/>
 
 
     <application
@@ -20,10 +12,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity
-            android:name="com.watvision.mainapp.MainActivity"
-            android:label="@string/app_name"
-            android:screenOrientation="portrait">
+        <activity android:name="com.watvision.mainapp.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

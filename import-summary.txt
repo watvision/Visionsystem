@@ -21,7 +21,8 @@ so manually move them:
 * javadoc\org\opencv\android\CameraBridgeViewBase.CvCameraViewFrame.html
 * javadoc\org\opencv\android\CameraBridgeViewBase.CvCameraViewListener.html
 * javadoc\org\opencv\android\CameraBridgeViewBase.CvCameraViewListener2.html
-* javadoc\org\opencv\android\CameraBridgeViewBase.ListItemAccessor.html
+* javadoc\org\opencv\android\CameraBrid
+geViewBase.ListItemAccessor.html
 * javadoc\org\opencv\android\CameraBridgeViewBase.html
 * javadoc\org\opencv\android\FpsMeter.html
 * javadoc\org\opencv\android\InstallCallbackInterface.html

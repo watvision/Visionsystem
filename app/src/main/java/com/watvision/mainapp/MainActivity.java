@@ -3,8 +3,7 @@ package com.watvision.mainapp;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.MenuItem;
-import android.view.SurfaceView;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
@@ -31,44 +30,34 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private static final String TAG = "MainActivity";
     private WatVision visionSystem;
 
+    JavaCameraView javaCameraView;
+
     // Initialize OpenCV libraries
     static {
-        if (!OpenCVLoader.initDebug()) {
-            Log.d(TAG, "OpenCV not loaded");
-        } else {
-            Log.d(TAG, "OpenCV loaded");
-        }
+        System.loadLibrary("MyOpencvLibs");
     }
 
+    BaseLoaderCallback mLoaderCallBack = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case BaseLoaderCallback.SUCCESS:
+                    javaCameraView.enableView();
+                    break;
+                default:
+                    super.onManagerConnected(status);
+                    break;
+            }
 
-    // Loads camera view of OpenCV for us to use. This lets us see using OpenCV
-    private CameraBridgeViewBase mOpenCvCameraView;
-
-    // Used in Camera selection from menu (when implemented)
-    private boolean              mIsJavaCamera = true;
-    private MenuItem             mItemSwitchCamera = null;
+        }
+    };
 
     // These variables are used (at the moment) to fix camera orientation from 270degree to 0degree
     Mat mRgba;
     Mat mRgbaF;
     Mat mRgbaT;
 
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
-        @Override
-        public void onManagerConnected(int status) {
-            switch (status) {
-                case LoaderCallbackInterface.SUCCESS:
-                {
-                    Log.i(TAG, "OpenCV loaded successfully");
-                    mOpenCvCameraView.enableView();
-                } break;
-                default:
-                {
-                    super.onManagerConnected(status);
-                } break;
-            }
-        }
-    };
+    Mat mGray;
 
     // Constructor
     public MainActivity() {
@@ -83,15 +72,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         setContentView(R.layout.activity_main);
 
-        mOpenCvCameraView = (JavaCameraView) findViewById(R.id.show_camera_activity_java_surface_view);
-
-        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
-
-        mOpenCvCameraView.setCvCameraViewListener(this);
-
-        mOpenCvCameraView.enableFpsMeter();
-
-        mOpenCvCameraView.setMaxFrameSize(1000,1000);
+        javaCameraView = (JavaCameraView) findViewById(R.id.java_camera_view);
+        javaCameraView.setVisibility(View.VISIBLE);
+        javaCameraView.setCvCameraViewListener(this);
 
         visionSystem = new WatVision(getApplicationContext());
     }
@@ -100,7 +83,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public void onPause()
     {
         super.onPause();
-        if (mOpenCvCameraView != null) mOpenCvCameraView.disableView();
+        if (javaCameraView != null) {
+            javaCameraView.disableView();
+        }
         if (visionSystem != null) visionSystem.pause();
     }
 
@@ -109,19 +94,20 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     {
         // To do - Add visionSystem resume
         super.onResume();
-        if (!OpenCVLoader.initDebug()) {
-            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
+        if (OpenCVLoader.initDebug()) {
+            Log.i(TAG,"OpenCV Loaded successfully");
+            mLoaderCallBack.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         } else {
-            Log.d(TAG, "OpenCV library found inside package. Using it!");
-            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+            Log.i(TAG,"OpenCV not loaded");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallBack);
         }
     }
 
     public void onDestroy() {
         super.onDestroy();
-        if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
+        if (javaCameraView != null) {
+            javaCameraView.disableView();
+        }
     }
 
     public void onCameraViewStarted(int width, int height) {
@@ -129,6 +115,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mRgba = new Mat(height, width, CvType.CV_8UC4);
         mRgbaF = new Mat(height, width, CvType.CV_8UC4);
         mRgbaT = new Mat(width, width, CvType.CV_8UC4);
+        mGray = new Mat(width, width, CvType.CV_8UC1);
     }
 
     public void onCameraViewStopped() {
@@ -161,7 +148,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         // Get Menu Tracking Info
         MenuAndFingerTracking.menuAndFingerInfo trackingResult = visionSystem.getMenuAndFingerInfo(mRgbaT);
 
-        resultMat = mRgbaT;
+        OpenCVNative.convertGray(mRgbaT.getNativeObjAddr(), mGray.getNativeObjAddr());
+
+        resultMat = mGray;
 
         if (trackingResult.menuTracked) {
             Log.i("Tracking","MenuTracked");
