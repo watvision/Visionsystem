@@ -8,6 +8,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 
 import android.util.Log;
+import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -31,6 +32,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private WatVision visionSystem;
 
     JavaCameraView javaCameraView;
+    TextView visionOutputText;
 
     // Initialize OpenCV libraries
     static {
@@ -75,6 +77,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         javaCameraView = (JavaCameraView) findViewById(R.id.java_camera_view);
         javaCameraView.setVisibility(View.VISIBLE);
         javaCameraView.setCvCameraViewListener(this);
+
+        visionOutputText = (TextView) findViewById(R.id.vision_output_text);
 
         visionSystem = new WatVision(getApplicationContext());
     }
@@ -148,9 +152,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         // Get Menu Tracking Info
         MenuAndFingerTracking.menuAndFingerInfo trackingResult = visionSystem.getMenuAndFingerInfo(mRgbaT);
 
-        OpenCVNative.convertGray(mRgbaT.getNativeObjAddr(), mGray.getNativeObjAddr());
+        // Some Native C Code as an example, makes mRgbaT become gray
+        // OpenCVNative.convertGray(mRgbaT.getNativeObjAddr(), mGray.getNativeObjAddr());
 
-        resultMat = mGray;
+        resultMat = mRgbaT;
 
         if (trackingResult.menuTracked) {
             Log.i("Tracking","MenuTracked");
@@ -162,6 +167,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
             final Mat menuGrabbedImage = visionSystem.getResultImage().clone();
             final Mat highlightedImage = visionSystem.getHighlightedImage().clone();
+            final String displayText = visionSystem.lastReadText;
 
             // Update images on UI
             runOnUiThread(new Runnable() {
@@ -181,6 +187,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                     // find the imageview and draw it!
                     iv = (ImageView) findViewById(R.id.highlighted_image_view);
                     iv.setImageBitmap(bm);
+
+                    visionOutputText.setText(displayText);
 
                     Log.i("Tracking","Updated Views");
 

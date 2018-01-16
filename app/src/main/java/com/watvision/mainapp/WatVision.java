@@ -92,7 +92,7 @@ public class WatVision {
                     }
                 } else {
                     // If I move off the element this resets the last read text.
-                    lastReadText = "Null Text";
+                    lastReadText = "No Element Present";
                 }
 
             }
