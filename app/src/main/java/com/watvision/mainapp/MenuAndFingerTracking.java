@@ -113,8 +113,10 @@ public class MenuAndFingerTracking {
         Marker bottomLeftMarker = null;
         Marker fingerMarker = null;
 
-		resizedImage = new Mat(inputImage.rows(),(int) (inputImage.cols()*0.8),inputImage.type());
-		Imgproc.resize(inputImage, resizedImage, resizedImage.size(), 0, 0, Imgproc.INTER_CUBIC);
+        // The image may need some resizing. It seems to come in warped. For now leaving the image unaltered
+		//resizedImage = new Mat(inputImage.rows(),(int) (inputImage.cols()*0.8),inputImage.type());
+		//Imgproc.resize(inputImage, resizedImage, resizedImage.size(), 0, 0, Imgproc.INTER_CUBIC);
+        resizedImage = inputImage.clone();
 
         // Setup required parameters for detect method
         MarkerDetector mDetector = new MarkerDetector();
@@ -213,10 +215,15 @@ public class MenuAndFingerTracking {
 	    Point bottomRightCorner;
 	    Point bottomLeftCorner;
 
-	    topLeftCorner = topLeft.getCorners(camParams).get(2);
-        topRightCorner = topRight.getCorners(camParams).get(3);
-        bottomRightCorner = bottomRight.getCorners(camParams).get(0);
-        bottomLeftCorner = bottomLeft.getCorners(camParams).get(1);
+	    List<Point> topLeftCornerList = topLeft.getCorners(camParams);
+        List<Point> topRightCornerList = topRight.getCorners(camParams);
+        List<Point> bottomRightCornerList = bottomRight.getCorners(camParams);
+        List<Point> bottomLeftCornerList = bottomLeft.getCorners(camParams);
+
+	    topLeftCorner = topLeftCornerList.get(2);
+        topRightCorner = topRightCornerList.get(3);
+        bottomRightCorner = bottomRightCornerList.get(0);
+        bottomLeftCorner = bottomLeftCornerList.get(1);
 
         ArrayList<Point> sourcePoints = new ArrayList<Point>();
         sourcePoints.add(topLeftCorner);
@@ -224,17 +231,15 @@ public class MenuAndFingerTracking {
         sourcePoints.add(bottomRightCorner);
         sourcePoints.add(bottomLeftCorner);
 
-        // Top left is 0, top right is 1, bottom right is 2, bottom left is 3
-        MatOfPoint sourcePointsMat = new MatOfPoint();
-        sourcePointsMat.fromList(sourcePoints);
-
-        Rect sourceBoundingBox = Imgproc.boundingRect(sourcePointsMat);
+        // Final menu image width and height
+        double width = cv_distance(topLeftCorner,topRightCorner);
+        double height = cv_distance(topLeftCorner,bottomLeftCorner);
 
         ArrayList<Point> destinationPoints = new ArrayList<Point>();
         destinationPoints.add(new Point(0,0));
-        destinationPoints.add(new Point(sourceBoundingBox.width,0));
-        destinationPoints.add(new Point(sourceBoundingBox.width,sourceBoundingBox.height));
-        destinationPoints.add(new Point(0,sourceBoundingBox.height));
+        destinationPoints.add(new Point(width,0));
+        destinationPoints.add(new Point(width,height));
+        destinationPoints.add(new Point(0,height));
 
         Mat warp_matrix;
         Mat perspectiveSource = Converters.vector_Point2f_to_Mat(sourcePoints);
@@ -245,7 +250,7 @@ public class MenuAndFingerTracking {
         // Store the warp matrix to the class variable
         perspective_warp_matrix = warp_matrix;
 
-        Imgproc.warpPerspective(inputImage, resultImage, warp_matrix, new Size(sourceBoundingBox.width,sourceBoundingBox.height));
+        Imgproc.warpPerspective(inputImage, resultImage, warp_matrix, new Size(width,height));
 
         for (int i = 0; i < 4; i++) {
             Imgproc.line(highlightedImage,sourcePoints.get(i),sourcePoints.get((i+1) % 4), new Scalar(255,0,0),lineThickness);
