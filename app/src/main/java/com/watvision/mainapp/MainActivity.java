@@ -18,8 +18,17 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.android.Utils;
+
+import java.util.List;
+import java.util.Vector;
+
+import es.ava.aruco.CameraParameters;
+import es.ava.aruco.Marker;
+import es.ava.aruco.MarkerDetector;
 
 // Main Activity - Created 2018-01-13
 // Initiates the Camera, and other UI elements. This class deals with everything related to the
@@ -149,20 +158,22 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         */
 
 
-        // Get Menu Tracking Info
-        MenuAndFingerTracking.menuAndFingerInfo trackingResult = visionSystem.getMenuAndFingerInfo(mRgbaT);
-
         // Some Native C Code as an example, makes mRgbaT become gray
         // OpenCVNative.convertGray(mRgbaT.getNativeObjAddr(), mGray.getNativeObjAddr());
 
         resultMat = mRgbaT;
 
+
+
+        // Get Menu Tracking Info
+        MenuAndFingerTracking.menuAndFingerInfo trackingResult = visionSystem.getMenuAndFingerInfo(mRgbaT);
+
         if (trackingResult.menuTracked) {
-            Log.i("Tracking","MenuTracked");
+            Log.i(TAG, "Some menu seen");
+
 
             if (trackingResult.fingerData.tracked) {
-                Log.i("Tracking","FingerTracked");
-
+                Log.i(TAG, "FingerTracked");
             }
 
             final Mat menuGrabbedImage = visionSystem.getResultImage().clone();
@@ -172,16 +183,17 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             // Update images on UI
             runOnUiThread(new Runnable() {
                 private Mat sensordata = menuGrabbedImage;
+
                 public void run() {
                     // convert to bitmap:
-                    Bitmap bm = Bitmap.createBitmap(sensordata.cols(), sensordata.rows(),Bitmap.Config.ARGB_8888);
+                    Bitmap bm = Bitmap.createBitmap(sensordata.cols(), sensordata.rows(), Bitmap.Config.ARGB_8888);
                     Utils.matToBitmap(sensordata, bm);
 
                     // find the imageview and draw it!
                     ImageView iv = (ImageView) findViewById(R.id.result_image_view);
                     iv.setImageBitmap(bm);
 
-                    bm = Bitmap.createBitmap(highlightedImage.cols(), highlightedImage.rows(),Bitmap.Config.ARGB_8888);
+                    bm = Bitmap.createBitmap(highlightedImage.cols(), highlightedImage.rows(), Bitmap.Config.ARGB_8888);
                     Utils.matToBitmap(highlightedImage, bm);
 
                     // find the imageview and draw it!
@@ -190,19 +202,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
                     visionOutputText.setText(displayText);
 
-                    Log.i("Tracking","Updated Views");
+                    Log.i(TAG, "Updated Views");
 
                 }
             });
-
-
         }
-
-
-
-
-
-
 
         return resultMat;
     }
