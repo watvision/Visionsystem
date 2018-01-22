@@ -28,6 +28,9 @@ local.properties
 .idea/vcs.xml
 *.iml
 
+# Build library files
+*.so
+
 # OS-specific files
 .DS_Store
 .DS_Store?
