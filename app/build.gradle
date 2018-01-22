@@ -4,7 +4,7 @@ android {
     compileSdkVersion 26
     defaultConfig {
         applicationId "com.watvision.mainapp"
-        minSdkVersion 24
+        minSdkVersion 23
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -15,7 +15,15 @@ android {
         jni.srcDirs = [] //disable automatic ndk-build call
     }
     task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
-        commandLine "C:/Users/Craig/AppData/Local/Android/sdk/ndk-bundle/ndk-build.cmd",
+        def path = ''
+        def jake_path = new File('C:/Users/Jake')
+        def craig_path = new File('C:/Users/Craig')
+        if(jake_path.exists())
+            path = "C:/Users/Jake/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
+        else if(craig_path.exists())
+            path = "C:/Users/Craig/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
+
+        commandLine path,
                 'NDK_PROJECT_PATH=build/intermediates/ndk',
                 'NDK_LIBS_OUT=src/main/jniLibs',
                 'APP_BUILD_SCRIPT=src/main/jni/Android.mk',
