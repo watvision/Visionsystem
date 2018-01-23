@@ -21,6 +21,11 @@ public class WatVision {
     private MenuAndFingerTracking tracker;
     private Screen currentScreen;
 
+    private Boolean readingTextNoInterrupt;
+    private Boolean menuSeenBefore;
+    // Not a fan of this implementation... But it will do for a demo!
+    private Boolean narratorSpoken;
+
     // Janky code as a means to not read out things multiple times
     String lastReadText;
 
@@ -28,15 +33,6 @@ public class WatVision {
     public WatVision(Context appContext) {
 
         applicationContext = appContext;
-
-        textSpeaker = new TextToSpeech(applicationContext, new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if(status != TextToSpeech.ERROR) {
-                    textSpeaker.setLanguage(Locale.ENGLISH);
-                }
-            }
-        });
 
         tracker = new MenuAndFingerTracking();
 
@@ -59,6 +55,21 @@ public class WatVision {
 
         lastReadText = "Initiate";
 
+        menuSeenBefore = false;
+        readingTextNoInterrupt = false;
+
+        textSpeaker = new TextToSpeech(applicationContext, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status != TextToSpeech.ERROR) {
+                    textSpeaker.setLanguage(Locale.ENGLISH);
+                    readTextNoInterrupt("Please point your camera at the screen. Directions will be given when a corner is seen.");
+                }
+            }
+        });
+
+        narratorSpoken = false;
+
     }
 
     // textSpeaker needs to be paused when the app is paused
@@ -77,6 +88,11 @@ public class WatVision {
 
         if ( resultInfo.menuTracked ) {
 
+            if (!menuSeenBefore) {
+                readTextNoInterrupt("Menu Found!");
+                menuSeenBefore = true;
+            }
+
             if ( resultInfo.fingerData.tracked ) {
 
                 ScreenElement selectedElement = currentScreen.GetElementAtPoint(
@@ -86,24 +102,78 @@ public class WatVision {
                 if (selectedElement != null) {
                     String selectedElementText = selectedElement.GetElementDescription();
 
-                    if (selectedElementText != lastReadText) {
-                        readText(selectedElement.GetElementDescription());
-                        lastReadText = selectedElement.GetElementDescription();
-                    }
+                    readText(selectedElementText);
+
                 } else {
                     // If I move off the element this resets the last read text.
                     lastReadText = "No Element Present";
                 }
-
             }
-
+        } else {
+            menuSeenBefore = false;
+            narrateScreenLocation(resultInfo);
         }
 
         return resultInfo;
     }
 
     private void readText(String textToRead) {
-        textSpeaker.speak(textToRead, TextToSpeech.QUEUE_FLUSH, null);
+        if (!readingTextNoInterrupt) {
+            if (!textToRead.equals(lastReadText)) {
+                textSpeaker.speak(textToRead, TextToSpeech.QUEUE_FLUSH, null);
+                lastReadText = textToRead;
+            }
+        } else {
+                if (!textSpeaker.isSpeaking()) {
+                    // This is ultimately messy and should be replaced. A task to do so is in Jira.
+                    if (narratorSpoken) {
+                        readingTextNoInterrupt = false;
+                        readText(textToRead);
+                    }
+                } else {
+                    narratorSpoken = true;
+                }
+        }
+    }
+
+    private void readTextNoInterrupt(String textToRead) {
+
+        if (!textToRead.equals(lastReadText) && !readingTextNoInterrupt) {
+            readingTextNoInterrupt = true;
+            textSpeaker.speak(textToRead, TextToSpeech.QUEUE_FLUSH, null);
+            lastReadText = textToRead;
+        }
+    }
+
+    private void narrateScreenLocation(MenuAndFingerTracking.menuAndFingerInfo menuInfo) {
+
+        String locateString = "";
+
+        if (menuInfo.topLeftTracked) {
+            if (menuInfo.bottomLeftTracked) {
+                locateString = "Right";
+            } else if (menuInfo.topRightTracked) {
+                locateString = "Down";
+            } else {
+                locateString = "Down and Right";
+            }
+        } else if (menuInfo.bottomRightTracked) {
+            if (menuInfo.bottomLeftTracked) {
+                locateString = "Up";
+            } else if (menuInfo.topRightTracked) {
+                locateString = "Left";
+            } else {
+                locateString = "Up and Left";
+            }
+        } else if (menuInfo.topRightTracked) {
+            locateString = "Down and Left";
+        } else if (menuInfo.bottomLeftTracked) {
+            locateString = "Up and Right";
+        } else {
+            locateString = "No screen found";
+        }
+
+        readText(locateString);
     }
 
     public Mat getResultImage() {
