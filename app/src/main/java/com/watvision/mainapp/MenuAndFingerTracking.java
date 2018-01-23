@@ -92,6 +92,87 @@ public class MenuAndFingerTracking {
         }
 	}
 
+	// An enum used to denote which corner the markerCorner is
+    private enum cornerLocation {
+        topLeft, topRight, bottomRight, bottomLeft
+    };
+
+	private class markerCorner {
+	    public Marker mainMarker;
+        // the counter-clockwise marker
+	    public Marker markerA;
+	    // the clockwise marker
+	    public Marker markerB;
+	    public cornerLocation cornerLoc;
+
+	    private ArrayList<Point> markerACornerList;
+        private ArrayList<Point> markerBCornerList;
+        private ArrayList<Point> mainMarkerCornerList;
+
+        public markerCorner(Marker inMarkerA, Marker inMarker, Marker inMarkerB, cornerLocation inCornerLoc,
+                            ArrayList<Point> inMarkerACornerList,
+                            ArrayList<Point> inMainMarkerCornerList,
+                            ArrayList<Point> inMarkerBCornerList) {
+            mainMarker = inMarker;
+            markerA = inMarkerA;
+            markerB = inMarkerB;
+            cornerLoc = inCornerLoc;
+
+            markerACornerList = inMarkerACornerList;
+            mainMarkerCornerList = inMainMarkerCornerList;
+            markerBCornerList = inMarkerBCornerList;
+        }
+
+        // Get the correct corner point for the corner
+        public Point getCornerPoint(CameraParameters camParams) {
+
+            // If main marker is defined
+            if (mainMarker != null) {
+
+                if (cornerLoc == cornerLocation.topLeft) {
+                    return mainMarkerCornerList.get(2);
+                } else if (cornerLoc == cornerLocation.topRight) {
+                    return mainMarkerCornerList.get(3);
+                } else if (cornerLoc == cornerLocation.bottomRight) {
+                    return mainMarkerCornerList.get(0);
+                } else if (cornerLoc == cornerLocation.bottomLeft) {
+                    return mainMarkerCornerList.get(1);
+                }
+
+            // if Main Marker is not defined use the other two corners
+            } else {
+
+                Point intersectionPoint = new Point();
+                Boolean intersectionExists = true;
+
+                if (cornerLoc == cornerLocation.topLeft) {
+                    intersectionExists = getIntersectionPoint(markerACornerList.get(1),markerACornerList.get(2),
+                            markerBCornerList.get(3),markerBCornerList.get(2),intersectionPoint);
+                } else if (cornerLoc == cornerLocation.topRight) {
+                    intersectionExists = getIntersectionPoint(markerACornerList.get(3),markerACornerList.get(2),
+                            markerBCornerList.get(0),markerBCornerList.get(3),intersectionPoint);
+                } else if (cornerLoc == cornerLocation.bottomRight) {
+                    intersectionExists = getIntersectionPoint(markerACornerList.get(0),markerACornerList.get(3),
+                            markerBCornerList.get(0),markerBCornerList.get(1),intersectionPoint);
+                } else if (cornerLoc == cornerLocation.bottomLeft) {
+                    intersectionExists = getIntersectionPoint(markerACornerList.get(0),markerACornerList.get(1),
+                            markerBCornerList.get(1),markerBCornerList.get(2),intersectionPoint);
+                }
+
+                if (intersectionExists) {
+                    Log.i(TAG,"Returning intersection point");
+                    return intersectionPoint;
+                } else {
+                    Log.i(TAG,"Reached error state. Detected parallel corner intersections");
+                }
+
+            }
+
+            Log.i(TAG,"Code has reached an error state while detecting Marker Corners");
+            return new Point();
+        }
+    }
+
 	// Constructor
 	public MenuAndFingerTracking() {
 		traceImage = new Mat();
@@ -125,6 +206,7 @@ public class MenuAndFingerTracking {
 
         camParams.loadConstandCalibration(resizedImage.cols()/2,resizedImage.rows()/2);
 
+        // Validate camera Parameters
         if (camParams.isValid()) {
             Log.i(TAG,"VALID cam Params");
         } else {
@@ -136,7 +218,6 @@ public class MenuAndFingerTracking {
 
         // Populate detectedMarkers
         mDetector.detect(resizedImage, detectedMarkers, camParams, MARKER_SIZE);
-
 
         // Detect markers and provide info
         if (detectedMarkers.size() != 0) {
@@ -181,8 +262,15 @@ public class MenuAndFingerTracking {
             }
         }
 
-        if (returnInfo.topLeftTracked && returnInfo.topRightTracked
-                && returnInfo.bottomRightTracked && returnInfo.bottomLeftTracked) {
+        // Get number of tracked corners
+        int numTrackedCorners = 0;
+
+        if (returnInfo.topLeftTracked) numTrackedCorners++;
+        if (returnInfo.topRightTracked) numTrackedCorners++;
+        if (returnInfo.bottomRightTracked) numTrackedCorners++;
+        if (returnInfo.bottomLeftTracked) numTrackedCorners++;
+
+        if (numTrackedCorners >= 3) {
             returnInfo.menuTracked = true;
             // Track and produce resulting menu
             produceResultingMenu(topLeftMarker,topRightMarker,bottomLeftMarker,bottomRightMarker,
@@ -210,39 +298,24 @@ public class MenuAndFingerTracking {
 	public void produceResultingMenu(Marker topLeft, Marker topRight, Marker bottomLeft, Marker bottomRight,
                                      Mat inputImage, CameraParameters camParams) {
 
-	    Point topLeftCorner;
-	    Point topRightCorner;
-	    Point bottomRightCorner;
-	    Point bottomLeftCorner;
-
-	    List<Point> topLeftCornerList = topLeft.getCorners(camParams);
-        List<Point> topRightCornerList = topRight.getCorners(camParams);
-        List<Point> bottomRightCornerList = bottomRight.getCorners(camParams);
-        List<Point> bottomLeftCornerList = bottomLeft.getCorners(camParams);
-
-	    topLeftCorner = topLeftCornerList.get(2);
-        topRightCorner = topRightCornerList.get(3);
-        bottomRightCorner = bottomRightCornerList.get(0);
-        bottomLeftCorner = bottomLeftCornerList.get(1);
-
-        ArrayList<Point> sourcePoints = new ArrayList<Point>();
-        sourcePoints.add(topLeftCorner);
-        sourcePoints.add(topRightCorner);
-        sourcePoints.add(bottomRightCorner);
-        sourcePoints.add(bottomLeftCorner);
+	    // Get corner points
+        // 0 is topLeft, 1 is topRight, 2 is bottomRight, 3 is bottomLeft
+        ArrayList<Point> cornerList = getCornerPointList(topLeft, topRight, bottomRight, bottomLeft, camParams);
 
         // Final menu image width and height
-        double width = cv_distance(topLeftCorner,topRightCorner);
-        double height = cv_distance(topLeftCorner,bottomLeftCorner);
+        double width = cv_distance(cornerList.get(0),cornerList.get(1));
+        double height = cv_distance(cornerList.get(0),cornerList.get(3));
 
+        // Create resulting image dimensions
         ArrayList<Point> destinationPoints = new ArrayList<Point>();
         destinationPoints.add(new Point(0,0));
         destinationPoints.add(new Point(width,0));
         destinationPoints.add(new Point(width,height));
         destinationPoints.add(new Point(0,height));
 
+        // Warp the matrix
         Mat warp_matrix;
-        Mat perspectiveSource = Converters.vector_Point2f_to_Mat(sourcePoints);
+        Mat perspectiveSource = Converters.vector_Point2f_to_Mat(cornerList);
         Mat perspectiveDestination = Converters.vector_Point2f_to_Mat(destinationPoints);
 
         warp_matrix = Imgproc.getPerspectiveTransform(perspectiveSource, perspectiveDestination);
@@ -252,9 +325,55 @@ public class MenuAndFingerTracking {
 
         Imgproc.warpPerspective(inputImage, resultImage, warp_matrix, new Size(width,height));
 
+        // Draw the highlights on the image
         for (int i = 0; i < 4; i++) {
-            Imgproc.line(highlightedImage,sourcePoints.get(i),sourcePoints.get((i+1) % 4), new Scalar(255,0,0),lineThickness);
+            Imgproc.line(highlightedImage,cornerList.get(i),cornerList.get((i+1) % 4), new Scalar(255,0,0),lineThickness);
         }
+    }
+
+    private ArrayList<Point> getCornerPointList(Marker topLeft, Marker topRight, Marker bottomRight, Marker bottomLeft,
+                                                CameraParameters camParams) {
+
+        ArrayList<Point> topLeftCornerList = null;
+        ArrayList<Point> topRightCornerList = null;
+        ArrayList<Point> bottomLeftCornerList = null;
+        ArrayList<Point> bottomRightCornerList = null;
+
+        if (topLeft != null) {
+            topLeftCornerList = new ArrayList<Point>(topLeft.getCorners(camParams));
+        }
+        if (topRight != null) {
+            topRightCornerList = new ArrayList<Point>(topRight.getCorners(camParams));
+        }
+        if (bottomRight != null) {
+           bottomRightCornerList = new ArrayList<Point>(bottomRight.getCorners(camParams));
+        }
+        if (bottomLeft != null) {
+           bottomLeftCornerList = new ArrayList<Point>(bottomLeft.getCorners(camParams));
+        }
+
+        // Create marker corners. Marker input order is clockwise with the main marker being in the middle
+        markerCorner topLeftMarkerCorner = new markerCorner(bottomLeft, topLeft, topRight, cornerLocation.topLeft,
+                bottomLeftCornerList, topLeftCornerList, topRightCornerList);
+        markerCorner topRightMarkerCorner = new markerCorner(topLeft, topRight, bottomRight, cornerLocation.topRight,
+                topLeftCornerList, topRightCornerList, bottomRightCornerList);
+        markerCorner bottomRightMarkerCorner = new markerCorner(topRight, bottomRight, bottomLeft, cornerLocation.bottomRight,
+                topRightCornerList, bottomRightCornerList, bottomLeftCornerList);
+        markerCorner bottomLeftMarkerCorner = new markerCorner(bottomRight, bottomLeft, topLeft, cornerLocation.bottomLeft,
+                bottomRightCornerList, bottomLeftCornerList, topLeftCornerList);
+
+        Point topLeftCorner = topLeftMarkerCorner.getCornerPoint(camParams);
+        Point topRightCorner = topRightMarkerCorner.getCornerPoint(camParams);
+        Point bottomRightCorner = bottomRightMarkerCorner.getCornerPoint(camParams);
+        Point bottomLeftCorner = bottomLeftMarkerCorner.getCornerPoint(camParams);
+
+        ArrayList<Point> sourcePoints = new ArrayList<Point>();
+        sourcePoints.add(topLeftCorner);
+        sourcePoints.add(topRightCorner);
+        sourcePoints.add(bottomRightCorner);
+        sourcePoints.add(bottomLeftCorner);
+
+	    return sourcePoints;
     }
 
     public void produceFingerInfo(Marker fingerMarker, menuAndFingerInfo returnInfo,
@@ -321,6 +440,41 @@ public class MenuAndFingerTracking {
 	{
 		return Math.sqrt(Math.pow(Math.abs(P.x - Q.x),2) + Math.pow(Math.abs(P.y - Q.y),2)) ; 
 	}
+
+    // Taken from online. See description above.
+    private Boolean getIntersectionPoint(Point a1, Point a2, Point b1, Point b2, Point intersection)
+    {
+        Point p = a1.clone();
+        Point q = b1.clone();
+        Point r = new Point();
+        r.x = a2.x - a1.x;
+        r.y = a2.y - a1.y;
+        Point s = new Point();
+        s.x = b2.x - b1.x;
+        s.y = b2.y - b1.y;
+
+        if(cross(r,s) == 0) {return false;}
+
+        Point qMinusP = new Point();
+        qMinusP.x = q.x - p.x;
+        qMinusP.y = q.y - p.y;
+
+        double t = cross(qMinusP,s) / cross(r,s);
+
+        r.x = t * r.x;
+        r.y = t * r.y;
+
+        intersection.x = p.x + r.x;
+        intersection.y = p.y + r.y;
+        return true;
+    }
+
+    // Taken from online
+    // Returns the cross product of two points
+    private double cross(Point v1,Point v2)
+    {
+        return v1.x*v2.y - v1.y*v2.x;
+    }
 
 
 }
