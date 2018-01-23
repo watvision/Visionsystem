@@ -15,13 +15,20 @@ android {
         jni.srcDirs = [] //disable automatic ndk-build call
     }
     task ndkBuild(type: Exec, description: 'Compile JNI source via NDK') {
+        // TODO: Replace this with better user check, not done initially because
+        //       gradle build not given access to system environment variables, all
+        //       returning null. Should find better way to do this.
         def path = ''
         def jake_path = new File('C:/Users/Jake')
         def craig_path = new File('C:/Users/Craig')
+        def liz_path = new File('C:/Users/Liz') //TODO: Update this with proper user
+
         if(jake_path.exists())
             path = "C:/Users/Jake/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
         else if(craig_path.exists())
             path = "C:/Users/Craig/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
+        else if(liz_path.exists())
+            path = "C:/Users/.." //TODO: Update this with proper user
 
         commandLine path,
                 'NDK_PROJECT_PATH=build/intermediates/ndk',
