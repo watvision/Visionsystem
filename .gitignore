@@ -29,7 +29,7 @@ local.properties
 *.iml
 
 # Build library files
-*.so
+
 
 # OS-specific files
 .DS_Store
