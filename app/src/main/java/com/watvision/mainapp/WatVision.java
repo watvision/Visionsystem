@@ -29,6 +29,8 @@ public class WatVision {
     // Janky code as a means to not read out things multiple times
     String lastReadText;
 
+    private ScreenAnalyzer screenAnalyzer;
+
     // Constructor
     public WatVision(Context appContext) {
 
@@ -70,6 +72,8 @@ public class WatVision {
 
         narratorSpoken = false;
 
+        screenAnalyzer = new ScreenAnalyzer(appContext);
+
     }
 
     // textSpeaker needs to be paused when the app is paused
@@ -90,6 +94,9 @@ public class WatVision {
 
             if (!menuSeenBefore) {
                 readTextNoInterrupt("Menu Found!");
+                screenAnalyzer.analyzePhoto(tracker.resultImage);
+                currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
+                        tracker.resultImage.height());
                 menuSeenBefore = true;
             }
 
@@ -177,7 +184,7 @@ public class WatVision {
     }
 
     public Mat getResultImage() {
-        return tracker.resultImage;
+        return screenAnalyzer.resultImage;
     }
 
     public Mat getHighlightedImage() {

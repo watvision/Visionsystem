@@ -1,5 +1,11 @@
 package com.watvision.mainapp;
 
+import android.graphics.Rect;
+import android.util.Log;
+import android.util.SparseArray;
+
+import com.google.android.gms.vision.text.TextBlock;
+
 import java.util.ArrayList;
 
 // Screen Class - Created 2018-01-13
@@ -9,8 +15,44 @@ public class Screen {
 
     private ArrayList<ScreenElement> elements;
 
+    // TAG used for debugging purposes
+    private static final String TAG = "Screen";
+
     public Screen() {
         elements = new ArrayList<ScreenElement>();
+    }
+
+    public void GenerateScreen(SparseArray<TextBlock> textBlocks, int screenWidth, int screenHeight) {
+
+        elements.clear();
+
+        for (int i = 0; i < textBlocks.size(); i++) {
+            TextBlock textBlock = textBlocks.get(textBlocks.keyAt(i));
+
+            elements.add(generateScreenElement(textBlock, screenWidth, screenHeight));
+        }
+
+    }
+
+    private ScreenElement generateScreenElement(TextBlock textBlock, int screenWidth, int screenHeight) {
+
+        Rect boundingRect = textBlock.getBoundingBox();
+
+        double xpos = boundingRect.left * 1.0 / screenWidth;
+        double ypos = boundingRect.top * 1.0 / screenHeight;
+        double width = boundingRect.width() * 1.0 / screenWidth;
+        double height = boundingRect.height() * 1.0 / screenHeight;
+
+
+        Log.w(TAG,"New Screen Element: " + boundingRect.left + " , " + boundingRect.top + " , " +
+                boundingRect.width() + " , " + boundingRect.height() + " , " + textBlock.getValue());
+
+        Log.w(TAG,"New Screen Element: " + xpos + " , " + ypos + " , " +
+                width + " , " + height + " , " + textBlock.getValue());
+
+        ScreenElement returnElement = new ScreenElement(xpos, ypos, width, height,textBlock.getValue());
+
+        return returnElement;
     }
 
     public ScreenElement GetElementAtPoint(double x, double y) {
