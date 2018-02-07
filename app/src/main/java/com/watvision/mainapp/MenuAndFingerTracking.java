@@ -224,7 +224,7 @@ public class MenuAndFingerTracking {
 
             Log.i(TAG, "Detected markers!");
 
-            highlightedImage = resizedImage.clone();
+            Imgproc.cvtColor(resizedImage, highlightedImage, Imgproc.COLOR_RGBA2RGB);
 
             for (int i = 0; i < detectedMarkers.size(); i++) {
                 Marker marker = detectedMarkers.get(i);

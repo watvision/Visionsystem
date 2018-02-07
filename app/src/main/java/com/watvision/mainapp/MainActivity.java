@@ -87,6 +87,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         javaCameraView.setVisibility(View.VISIBLE);
         javaCameraView.setCvCameraViewListener(this);
 
+        javaCameraView.setMaxFrameSize(1500,1500);
+
         visionOutputText = (TextView) findViewById(R.id.vision_output_text);
 
         visionSystem = new WatVision(getApplicationContext());
@@ -147,20 +149,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         Mat resultMat;
 
-        // Code that can be swapped out with the below chunk of code to show just the
-        // contour testing information
-        /*
-        ContourTesting testContours = new ContourTesting();
-
-        testContours.getFingerInfoFromFrame(mRgbaT);
-
-        resultMat = testContours.combinedContourInfo.clone();
-        */
-
-
-        // Some Native C Code as an example, makes mRgbaT become gray
-        // OpenCVNative.convertGray(mRgbaT.getNativeObjAddr(), mGray.getNativeObjAddr());
-
         resultMat = mRgbaT;
 
         Log.d(TAG,"Screen width: " + resultMat.width() + " height: " + resultMat.height());
@@ -180,29 +168,51 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             final Mat highlightedImage = visionSystem.getHighlightedImage().clone();
             final String displayText = visionSystem.lastReadText;
 
+            Bitmap initial_bm;
+
+            initial_bm = Bitmap.createBitmap(highlightedImage.cols(), highlightedImage.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(highlightedImage, initial_bm);
+
+            final Bitmap highlight_bm = initial_bm.copy(initial_bm.getConfig(),true);
+
+            initial_bm = Bitmap.createBitmap(menuGrabbedImage.cols(), menuGrabbedImage.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(menuGrabbedImage, initial_bm);
+
+            final Bitmap result_image_bm = initial_bm.copy(initial_bm.getConfig(),true);
+
             // Update images on UI
             runOnUiThread(new Runnable() {
-                private Mat sensordata = menuGrabbedImage;
 
                 public void run() {
-                    // convert to bitmap:
-                    Bitmap bm = Bitmap.createBitmap(sensordata.cols(), sensordata.rows(), Bitmap.Config.ARGB_8888);
-                    Utils.matToBitmap(sensordata, bm);
-
                     // find the imageview and draw it!
                     ImageView iv = (ImageView) findViewById(R.id.result_image_view);
-                    iv.setImageBitmap(bm);
-
-                    bm = Bitmap.createBitmap(highlightedImage.cols(), highlightedImage.rows(), Bitmap.Config.ARGB_8888);
-                    Utils.matToBitmap(highlightedImage, bm);
+                    iv.setImageBitmap(result_image_bm);
 
                     // find the imageview and draw it!
                     iv = (ImageView) findViewById(R.id.highlighted_image_view);
-                    iv.setImageBitmap(bm);
+                    iv.setImageBitmap(highlight_bm);
 
                     visionOutputText.setText(displayText);
 
                     Log.i(TAG, "Updated Views");
+                }
+            });
+        } else {
+            Bitmap initial_bm;
+
+            initial_bm = Bitmap.createBitmap(resultMat.cols(), resultMat.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(resultMat, initial_bm);
+
+            final Bitmap highlight_bm = initial_bm.copy(initial_bm.getConfig(),true);
+
+            // Update images on UI
+            runOnUiThread(new Runnable() {
+
+                public void run() {
+
+                    // find the imageview and draw it!
+                    ImageView iv = (ImageView) findViewById(R.id.highlighted_image_view);
+                    iv.setImageBitmap(highlight_bm);
 
                 }
             });
