@@ -163,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         resultMat = mRgbaT;
 
-
+        Log.d(TAG,"Screen width: " + resultMat.width() + " height: " + resultMat.height());
 
         // Get Menu Tracking Info
         MenuAndFingerTracking.menuAndFingerInfo trackingResult = visionSystem.getMenuAndFingerInfo(mRgbaT);

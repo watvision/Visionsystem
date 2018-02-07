@@ -34,7 +34,7 @@ public class MarkerDetector {
 	
 	public MarkerDetector(){
 		thresParam1 = thresParam2 = 7;
-		thresMethod = thresSuppMethod.ADPT_THRES;
+		thresMethod = thresSuppMethod.CANNY;
 		// TODO
 		grey = new Mat();
 		thres = new Mat();
@@ -78,7 +78,7 @@ public class MarkerDetector {
 			contours2.get(i).convertTo(contour, CvType.CV_32FC2);
 			// first check if it has enough points
 			int contourSize = (int)contour.total();
-			if(contourSize > in.cols()/5){
+			if(contourSize > in.cols()/15){
 				Imgproc.approxPolyDP(contour, approxCurve, contourSize*0.05, true);
 //				Converters.Mat_to_vector_Point(approxCurve, approxPoints);
 				// check the polygon has 4 points
