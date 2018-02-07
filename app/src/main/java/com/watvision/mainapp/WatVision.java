@@ -40,21 +40,6 @@ public class WatVision {
 
         currentScreen = new Screen();
 
-        // Some sample test data will be replaced later, useful now for testing.
-        ScreenElement elementA = new ScreenElement(0,0,0.2,0.2,"Upper Left");
-        ScreenElement elementB = new ScreenElement(0.8,0.0,0.2,0.2,"Upper Right");
-        ScreenElement elementC = new ScreenElement(0.8,0.8,0.2,0.2,"Bottom Right");
-        ScreenElement elementD = new ScreenElement(0,0.8,0.2,0.2,"Bottom Left");
-        ScreenElement elementE = new ScreenElement(0.4,0.4,0.2,0.2,"Center");
-
-        currentScreen.getAllElements().add(elementA);
-        currentScreen.getAllElements().add(elementB);
-        currentScreen.getAllElements().add(elementC);
-        currentScreen.getAllElements().add(elementD);
-        currentScreen.getAllElements().add(elementE);
-
-        // End of sample test data
-
         lastReadText = "Initiate";
 
         menuSeenBefore = false;

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 
 public class Screen {
 
+    // Element list. Should be read only, nothing should be removed from the list
     private ArrayList<ScreenElement> elements;
 
     // TAG used for debugging purposes
@@ -29,12 +30,12 @@ public class Screen {
         for (int i = 0; i < textBlocks.size(); i++) {
             TextBlock textBlock = textBlocks.get(textBlocks.keyAt(i));
 
-            elements.add(generateScreenElement(textBlock, screenWidth, screenHeight));
+            elements.add(generateScreenElement(textBlock, screenWidth, screenHeight, elements.size()));
         }
 
     }
 
-    private ScreenElement generateScreenElement(TextBlock textBlock, int screenWidth, int screenHeight) {
+    private ScreenElement generateScreenElement(TextBlock textBlock, int screenWidth, int screenHeight, int inId) {
 
         Rect boundingRect = textBlock.getBoundingBox();
 
@@ -43,14 +44,10 @@ public class Screen {
         double width = boundingRect.width() * 1.0 / screenWidth;
         double height = boundingRect.height() * 1.0 / screenHeight;
 
-
-        Log.w(TAG,"New Screen Element: " + boundingRect.left + " , " + boundingRect.top + " , " +
-                boundingRect.width() + " , " + boundingRect.height() + " , " + textBlock.getValue());
-
         Log.w(TAG,"New Screen Element: " + xpos + " , " + ypos + " , " +
-                width + " , " + height + " , " + textBlock.getValue());
+                width + " , " + height + " , " + textBlock.getValue() + " id: " + inId);
 
-        ScreenElement returnElement = new ScreenElement(xpos, ypos, width, height,textBlock.getValue());
+        ScreenElement returnElement = new ScreenElement(xpos, ypos, width, height,textBlock.getValue(), inId);
 
         return returnElement;
     }

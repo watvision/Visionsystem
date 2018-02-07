@@ -84,7 +84,7 @@ public class ScreenAnalyzer {
 
     public void analyzePhoto(Bitmap inputBitmap) {
 
-        Log.i(TAG,"Starting Analyzing screen:");
+        Log.i(TAG,"Starting Analyzing screen");
 
         if(inputBitmap != null) {
 
