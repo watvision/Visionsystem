@@ -194,10 +194,17 @@ public class MenuAndFingerTracking {
         Marker bottomLeftMarker = null;
         Marker fingerMarker = null;
 
+        // The unstretched image ratio of 0.561165 was found through experiment by measuring
+        // the aspect ratio in both portrait and landscape mode of the resulting image
+        // and then graphing these results for 3 different values of the ratio.
+        // The results were parabolic, and the intersection between the two parabolas
+        // (one being the portrait aspect ratio versus the stretch image ratio,
+        // and the other being the landscape aspect ratio) gives the point where the image
+        // is unstretched
+
         // The image may need some resizing. It seems to come in warped. For now leaving the image unaltered
-		//resizedImage = new Mat(inputImage.rows(),(int) (inputImage.cols()*0.8),inputImage.type());
-		//Imgproc.resize(inputImage, resizedImage, resizedImage.size(), 0, 0, Imgproc.INTER_CUBIC);
-        resizedImage = inputImage.clone();
+		resizedImage = new Mat(inputImage.rows(),(int) (inputImage.cols()*0.561165),inputImage.type());
+		Imgproc.resize(inputImage, resizedImage, resizedImage.size(), 0, 0, Imgproc.INTER_CUBIC);
 
         // Setup required parameters for detect method
         MarkerDetector mDetector = new MarkerDetector();
