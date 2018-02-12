@@ -179,6 +179,19 @@ public class Marker extends MatOfPoint2f implements Comparable<Marker>{
 
 		return returnList;
 	}
+
+	public List<Point> getProjectedPoints(Vector<Point3> inputPointList, CameraParameters cp) {
+		MatOfPoint3f objectPoints = new MatOfPoint3f();
+
+		objectPoints.fromList(inputPointList);
+		MatOfPoint2f imagePoints = new MatOfPoint2f();
+		Calib3d.projectPoints(objectPoints, Rvec, Tvec, cp.getCameraMatrix(), cp.getDistCoeff(), imagePoints);
+
+		List<Point> pts = new Vector<Point>();
+		pts = imagePoints.toList();
+
+		return pts;
+	}
 	
 	protected void setMat(Mat in){
 		in.copyTo(mat);

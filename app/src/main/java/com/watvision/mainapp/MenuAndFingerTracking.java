@@ -41,6 +41,10 @@ public class MenuAndFingerTracking {
     // Matrix that is used to unwarp the image and make the perspective of the screen flat
 	private Mat perspective_warp_matrix;
 
+	// Determined menu Width and Height
+    private double menuWidth;
+    private double menuHeight;
+
 	// Finger Info Class
     // Stores relevant information for the pointer or where the finger of the person is.
 	public class fingerInfo {
@@ -179,6 +183,9 @@ public class MenuAndFingerTracking {
 		// Initialize result and highlighted image to generic sizes
 		resultImage = Mat.zeros(800,800,16);
 		highlightedImage = Mat.zeros(800,800,16);
+
+		menuWidth = 0;
+		menuHeight = 0;
 	}
 
 	// Called on an incoming frame. Outputs the menu and finger information for an incoming image
@@ -277,11 +284,25 @@ public class MenuAndFingerTracking {
         if (returnInfo.bottomRightTracked) numTrackedCorners++;
         if (returnInfo.bottomLeftTracked) numTrackedCorners++;
 
-        if (numTrackedCorners >= 3) {
-            returnInfo.menuTracked = true;
-            // Track and produce resulting menu
-            produceResultingMenu(topLeftMarker,topRightMarker,bottomLeftMarker,bottomRightMarker,
-                    resizedImage, camParams);
+        // If we do not know the menu size
+        if (menuWidth == 0 || menuHeight == 0) {
+            if (numTrackedCorners == 4) {
+                returnInfo.menuTracked = true;
+                // Calculate menu size
+                calculateMenuSize(topLeftMarker,topRightMarker,bottomRightMarker,bottomLeftMarker,camParams);
+                produceResultingMenu(topLeftMarker,topRightMarker,bottomLeftMarker,bottomRightMarker,
+                        resizedImage, camParams);
+            } else {
+                returnInfo.menuTracked = false;
+            }
+        } else {
+            // Here we know the menu size
+            if (numTrackedCorners >= 1) {
+                Log.d(TAG,"Getting screen with one marker");
+                returnInfo.menuTracked = true;
+                produceResultingMenu(topLeftMarker,topRightMarker,bottomLeftMarker,bottomRightMarker,
+                        resizedImage, camParams);
+            }
         }
 
         if (fingerMarker != null && returnInfo.menuTracked) {
@@ -291,6 +312,79 @@ public class MenuAndFingerTracking {
 
         return returnInfo;
 	}
+
+    private void calculateMenuSize(Marker topLeft, Marker topRight, Marker bottomRight, Marker bottomLeft,
+                                   CameraParameters camParams) {
+
+	    Log.d(TAG,"Calculating menu size");
+        ArrayList<Point> topLeftCornerPoints = new ArrayList(topLeft.getCorners(camParams));
+        ArrayList<Point> topRightCornerPoints = new ArrayList(topRight.getCorners(camParams));
+        ArrayList<Point> bottomLeftCornerPoints = new ArrayList(bottomLeft.getCorners(camParams));
+
+        double pixelTolerance = 30;
+
+        // Calculate width in meters
+        double markerPixelWidth = cv_distance(topLeftCornerPoints.get(3),topLeftCornerPoints.get(2));
+        double menuPixelWidth = cv_distance(topLeftCornerPoints.get(2),topRightCornerPoints.get(3));
+
+        menuWidth = menuPixelWidth * MARKER_SIZE / markerPixelWidth;
+
+        // Calculate height in meters
+        double markerPixelHeight = cv_distance(topLeftCornerPoints.get(1),topLeftCornerPoints.get(2));
+        double menuPixelHeight = cv_distance(topLeftCornerPoints.get(2),bottomLeftCornerPoints.get(1));
+
+
+
+        double error;
+        double adjustment;
+
+        // Figure out the width
+        do {
+            // Get error distance and iterate
+            Vector<Point3> topRightPointList = new Vector<>();
+            topRightPointList.add(new Point3(menuWidth + (MARKER_SIZE/2),-(MARKER_SIZE/2),0));
+            ArrayList<Point> projectedCornerList = new ArrayList(topLeft.getProjectedPoints(topRightPointList,camParams));
+            error = cv_distance(projectedCornerList.get(0),topRightCornerPoints.get(3));
+
+            if (projectedCornerList.get(0).x > topRightCornerPoints.get(3).x) {
+                adjustment = -error * MARKER_SIZE / markerPixelWidth;
+            } else {
+                adjustment = error * MARKER_SIZE / markerPixelWidth;
+            }
+
+            menuWidth += adjustment;
+
+            Log.d(TAG,"Width iteration error: " + error + " adjustment: " + adjustment);
+
+        } while (error >= pixelTolerance);
+
+        Log.d(TAG,"Final Width iteration error: " + error + " adjustment: " + adjustment);
+
+        // Figure out the height
+        do {
+            // Get error distance and iterate
+            Vector<Point3> bottomLeftPointList = new Vector<>();
+            bottomLeftPointList.add(new Point3(MARKER_SIZE/2,-(MARKER_SIZE/2) - menuHeight,0));
+            ArrayList<Point> projectedCornerList = new ArrayList(topLeft.getProjectedPoints(bottomLeftPointList,camParams));
+            error = cv_distance(projectedCornerList.get(0),bottomLeftCornerPoints.get(1));
+
+            if (projectedCornerList.get(0).y > bottomLeftCornerPoints.get(1).y) {
+                adjustment = -error * MARKER_SIZE / markerPixelHeight;
+            } else {
+                adjustment = error * MARKER_SIZE / markerPixelHeight;
+            }
+
+            menuHeight += adjustment;
+
+            Log.d(TAG,"Height iteration error: " + error + " adjustment: " + adjustment);
+
+        } while (error >= pixelTolerance);
+
+        Log.d(TAG,"Final Height iteration error: " + error + " adjustment: " + adjustment);
+
+        menuHeight = menuPixelHeight * MARKER_SIZE / markerPixelHeight;
+        Log.d(TAG,"Estimated menu width: " + menuWidth + " height: " + menuHeight);
+    }
 
 	public void highlightMarker(Marker inputMarker, CameraParameters camParams) {
 
@@ -341,38 +435,10 @@ public class MenuAndFingerTracking {
     private ArrayList<Point> getCornerPointList(Marker topLeft, Marker topRight, Marker bottomRight, Marker bottomLeft,
                                                 CameraParameters camParams) {
 
-        ArrayList<Point> topLeftCornerList = null;
-        ArrayList<Point> topRightCornerList = null;
-        ArrayList<Point> bottomLeftCornerList = null;
-        ArrayList<Point> bottomRightCornerList = null;
-
-        if (topLeft != null) {
-            topLeftCornerList = new ArrayList<Point>(topLeft.getCorners(camParams));
-        }
-        if (topRight != null) {
-            topRightCornerList = new ArrayList<Point>(topRight.getCorners(camParams));
-        }
-        if (bottomRight != null) {
-           bottomRightCornerList = new ArrayList<Point>(bottomRight.getCorners(camParams));
-        }
-        if (bottomLeft != null) {
-           bottomLeftCornerList = new ArrayList<Point>(bottomLeft.getCorners(camParams));
-        }
-
-        // Create marker corners. Marker input order is clockwise with the main marker being in the middle
-        markerCorner topLeftMarkerCorner = new markerCorner(bottomLeft, topLeft, topRight, cornerLocation.topLeft,
-                bottomLeftCornerList, topLeftCornerList, topRightCornerList);
-        markerCorner topRightMarkerCorner = new markerCorner(topLeft, topRight, bottomRight, cornerLocation.topRight,
-                topLeftCornerList, topRightCornerList, bottomRightCornerList);
-        markerCorner bottomRightMarkerCorner = new markerCorner(topRight, bottomRight, bottomLeft, cornerLocation.bottomRight,
-                topRightCornerList, bottomRightCornerList, bottomLeftCornerList);
-        markerCorner bottomLeftMarkerCorner = new markerCorner(bottomRight, bottomLeft, topLeft, cornerLocation.bottomLeft,
-                bottomRightCornerList, bottomLeftCornerList, topLeftCornerList);
-
-        Point topLeftCorner = topLeftMarkerCorner.getCornerPoint(camParams);
-        Point topRightCorner = topRightMarkerCorner.getCornerPoint(camParams);
-        Point bottomRightCorner = bottomRightMarkerCorner.getCornerPoint(camParams);
-        Point bottomLeftCorner = bottomLeftMarkerCorner.getCornerPoint(camParams);
+        Point topLeftCorner = null;
+        Point topRightCorner = null;
+        Point bottomRightCorner = null;
+        Point bottomLeftCorner = null;
 
         ArrayList<Point> sourcePoints = new ArrayList<Point>();
         sourcePoints.add(topLeftCorner);
@@ -380,7 +446,90 @@ public class MenuAndFingerTracking {
         sourcePoints.add(bottomRightCorner);
         sourcePoints.add(bottomLeftCorner);
 
+        if (topLeft != null) {
+            updateCornerPointList(topLeft,cornerLocation.topLeft,sourcePoints,camParams);
+        }
+        if (topRight != null) {
+            updateCornerPointList(topRight,cornerLocation.topRight,sourcePoints,camParams);
+        }
+        if (bottomRight != null) {
+            updateCornerPointList(bottomRight,cornerLocation.bottomRight,sourcePoints,camParams);
+        }
+        if (bottomLeft != null) {
+            updateCornerPointList(bottomLeft,cornerLocation.bottomLeft,sourcePoints,camParams);
+        }
+
 	    return sourcePoints;
+    }
+
+    // Updates the list of known menu corner points based upon the current input marker
+    public void updateCornerPointList(Marker inMarker, cornerLocation inCornerLocation, ArrayList<Point> cornerList,
+                                      CameraParameters camParams) {
+
+	    ArrayList<Point> markerCornerList = new ArrayList<Point>(inMarker.getCorners(camParams));
+
+	    // Set the marker's corner point to the identified spot
+	    cornerList.set((inCornerLocation.ordinal()), markerCornerList.get((inCornerLocation.ordinal() + 2) % 4));
+
+        // If a point is null then update it
+        Vector<Point3> pointGrabList = new Vector<Point3>();
+        ArrayList<Integer> cornerIndexList = new ArrayList<>();
+
+        for (int i = 0; i < cornerList.size(); i++) {
+
+            // If the point is null populate it based off the guess
+            if (cornerList.get(i) == null) {
+                pointGrabList.add(new Point3(getRelativeMenuWidthDistance(inCornerLocation,cornerLocation.values()[i]),
+                        getRelativeMenuHeightDistance(inCornerLocation,cornerLocation.values()[i]),0));
+                cornerIndexList.add(i);
+            }
+        }
+
+        if (!pointGrabList.isEmpty()) {
+            ArrayList<Point> projectedCornerList = new ArrayList(inMarker.getProjectedPoints(pointGrabList,camParams));
+
+            // Update the unknown points with the projected points
+            for (int i = 0; i < projectedCornerList.size(); i++) {
+                cornerList.set(cornerIndexList.get(i),projectedCornerList.get(i));
+            }
+        }
+
+    }
+
+    // Returns whether to input a negative positive, or zero menu width based on the marker position
+    private double getRelativeMenuWidthDistance(cornerLocation markerLocation, cornerLocation desiredLocation) {
+
+	    if (markerLocation == cornerLocation.topLeft || markerLocation == cornerLocation.bottomLeft) {
+            if (desiredLocation == cornerLocation.topRight || desiredLocation == cornerLocation.bottomRight) {
+                return menuWidth + MARKER_SIZE/2;
+            } else {
+                return MARKER_SIZE/2;
+            }
+        } else {
+            if (desiredLocation == cornerLocation.topRight || desiredLocation == cornerLocation.bottomRight) {
+                return -MARKER_SIZE/2;
+            } else {
+                return -menuWidth - (MARKER_SIZE/2);
+            }
+        }
+    }
+
+    // Returns whether to input a negative positive, or zero menu height based on the marker position
+    private double getRelativeMenuHeightDistance(cornerLocation markerLocation, cornerLocation desiredLocation) {
+
+        if (markerLocation == cornerLocation.topLeft || markerLocation == cornerLocation.topRight) {
+            if (desiredLocation == cornerLocation.bottomLeft || desiredLocation == cornerLocation.bottomRight) {
+                return -menuHeight - MARKER_SIZE/2;
+            } else {
+                return -MARKER_SIZE/2;
+            }
+        } else {
+            if (desiredLocation == cornerLocation.bottomLeft || desiredLocation == cornerLocation.bottomRight) {
+                return MARKER_SIZE/2;
+            } else {
+                return menuHeight + MARKER_SIZE/2;
+            }
+        }
     }
 
     public void produceFingerInfo(Marker fingerMarker, menuAndFingerInfo returnInfo,
