@@ -22,6 +22,7 @@ android {
         def jake_path = new File('C:/Users/Jake')
         def craig_path = new File('C:/Users/Craig')
         def liz_path = new File('C:/Users/Liz') //TODO: Update this with proper user
+        def joseph_path = new File('C:/Users/joe')
 
         if(jake_path.exists())
             path = "C:/Users/Jake/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
@@ -29,6 +30,8 @@ android {
             path = "C:/Users/Craig/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
         else if(liz_path.exists())
             path = "C:/Users/.." //TODO: Update this with proper user
+        else if(joseph_path.exists())
+            path = "C:/Users/joe/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
 
         commandLine path,
                 'NDK_PROJECT_PATH=build/intermediates/ndk',
