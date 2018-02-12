@@ -29,7 +29,7 @@ local.properties
 *.iml
 
 # Build library files
-
+app/src/main/jniLibs/armeabi-v7a/libMyOpencvLibs.so
 
 # OS-specific files
 .DS_Store
