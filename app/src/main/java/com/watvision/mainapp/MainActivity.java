@@ -89,6 +89,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         javaCameraView.setMaxFrameSize(1500,1500);
 
+        javaCameraView.enableFpsMeter();
+
         visionOutputText = (TextView) findViewById(R.id.vision_output_text);
 
         visionSystem = new WatVision(getApplicationContext());
