@@ -22,7 +22,7 @@ public class WatVision {
     private Screen currentScreen;
 
     private Boolean readingTextNoInterrupt;
-    private Boolean menuSeenBefore;
+
     // Not a fan of this implementation... But it will do for a demo!
     private Boolean narratorSpoken;
 
@@ -42,7 +42,6 @@ public class WatVision {
 
         lastReadText = "Initiate";
 
-        menuSeenBefore = false;
         readingTextNoInterrupt = false;
 
         textSpeaker = new TextToSpeech(applicationContext, new TextToSpeech.OnInitListener() {
@@ -77,12 +76,14 @@ public class WatVision {
 
         if ( resultInfo.menuTracked ) {
 
-            if (!menuSeenBefore) {
+            Boolean isSameMenu = screenAnalyzer.isSameScreen(inputtedFrame);
+
+            if (!isSameMenu) {
                 readTextNoInterrupt("Menu Found!");
                 screenAnalyzer.analyzePhoto(tracker.resultImage);
                 currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
                         tracker.resultImage.height());
-                menuSeenBefore = true;
+                screenAnalyzer.setKnownScreen(inputtedFrame);
             }
 
             if ( resultInfo.fingerData.tracked ) {
@@ -102,7 +103,6 @@ public class WatVision {
                 }
             }
         } else {
-            menuSeenBefore = false;
             narrateScreenLocation(resultInfo);
         }
 

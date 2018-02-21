@@ -25,13 +25,18 @@ import com.google.api.services.vision.v1.model.TextAnnotation;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.opencv.android.*;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.features2d.FeatureDetector;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 // Screen Analyzer - Created 2018-02-05
 // Identifies all screen elements for a given screen
@@ -48,6 +53,13 @@ public class ScreenAnalyzer {
     public SparseArray<TextBlock> textBlocks;
 
     public Mat resultImage;
+
+    // A previous reference to the identified screen, used to determine if we are looking at
+    // a new screen or at the old one
+    private Mat prevIdentifiedScreen;
+
+    // Identified screen keyPoints
+    List<KeyPoint> screenKeyPoints;
 
 
 
@@ -70,6 +82,7 @@ public class ScreenAnalyzer {
 
         resultImage = Mat.zeros(800,800,16);
 
+        prevIdentifiedScreen = null;
     }
 
     public void analyzePhoto(Mat inputMat) {
@@ -152,6 +165,64 @@ public class ScreenAnalyzer {
 
         }
 
+    }
+
+    public Boolean isSameScreen(Mat inputScreen) {
+
+        // If we don't know what the previous screen looked like then it must be different
+        if (prevIdentifiedScreen == null) {
+            return false;
+        }
+
+        // Do some other magic to determine if screen is the same
+
+        int numberOfMatchesForSuccess = 50;
+
+        FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
+        MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
+        detector.detect(inputScreen,keypoints1);
+
+        List<KeyPoint> inputKeyPoints =  keypoints1.toList();
+
+        int similarPointSum = 0;
+
+        for (int i = 0; i < inputKeyPoints.size(); i++) {
+            if (pointIsNearPointList(inputKeyPoints.get(i),5)) {
+                similarPointSum++;
+            }
+            if (similarPointSum >= numberOfMatchesForSuccess) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void clearKnownScreen() {
+        prevIdentifiedScreen = null;
+
+        screenKeyPoints = null;
+
+    }
+
+    public void setKnownScreen(Mat inputScreen) {
+        prevIdentifiedScreen = inputScreen.clone();
+        FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
+        MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
+        detector.detect(inputScreen,keypoints1);
+
+        screenKeyPoints = keypoints1.toList();
+    }
+
+    private Boolean pointIsNearPointList(KeyPoint a, double tolerance) {
+        for (int i = 0; i < screenKeyPoints.size(); i++) {
+            if ((a.pt.x) > (screenKeyPoints.get(i).pt.x - tolerance) && (a.pt.x) < (screenKeyPoints.get(i).pt.x + tolerance)
+                    && (a.pt.y) > (screenKeyPoints.get(i).pt.y - tolerance) && (a.pt.y) < (screenKeyPoints.get(i).pt.y + tolerance)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }
