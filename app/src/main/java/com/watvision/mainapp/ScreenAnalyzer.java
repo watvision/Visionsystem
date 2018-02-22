@@ -58,6 +58,10 @@ public class ScreenAnalyzer {
     // a new screen or at the old one
     private Mat prevIdentifiedScreen;
 
+    // Previously known screen width and height
+    private int screenWidth;
+    private int screenHeight;
+
     // Identified screen keyPoints
     List<KeyPoint> screenKeyPoints;
 
@@ -83,6 +87,8 @@ public class ScreenAnalyzer {
         resultImage = Mat.zeros(800,800,16);
 
         prevIdentifiedScreen = null;
+        screenWidth = 0;
+        screenHeight = 0;
     }
 
     public void analyzePhoto(Mat inputMat) {
@@ -187,7 +193,7 @@ public class ScreenAnalyzer {
         int similarPointSum = 0;
 
         for (int i = 0; i < inputKeyPoints.size(); i++) {
-            if (pointIsNearPointList(inputKeyPoints.get(i),5)) {
+            if (pointIsNearPointList(inputKeyPoints.get(i),screenWidth*0.005)) {
                 similarPointSum++;
             }
             if (similarPointSum >= numberOfMatchesForSuccess) {
@@ -203,6 +209,9 @@ public class ScreenAnalyzer {
 
         screenKeyPoints = null;
 
+        screenWidth = 0;
+        screenHeight = 0;
+
     }
 
     public void setKnownScreen(Mat inputScreen) {
@@ -212,6 +221,9 @@ public class ScreenAnalyzer {
         detector.detect(inputScreen,keypoints1);
 
         screenKeyPoints = keypoints1.toList();
+
+        screenWidth = inputScreen.width();
+        screenHeight = inputScreen.height();
     }
 
     private Boolean pointIsNearPointList(KeyPoint a, double tolerance) {
