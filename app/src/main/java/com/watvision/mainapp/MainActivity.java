@@ -87,13 +87,14 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         javaCameraView.setVisibility(View.VISIBLE);
         javaCameraView.setCvCameraViewListener(this);
 
-        javaCameraView.setMaxFrameSize(1500,1500);
+        javaCameraView.setMaxFrameSize(visionSystem.lowResMaxWidth,visionSystem.lowResMaxHeight);
 
         javaCameraView.enableFpsMeter();
 
         visionOutputText = (TextView) findViewById(R.id.vision_output_text);
 
         visionSystem = new WatVision(getApplicationContext());
+        visionSystem.setJavaCameraViewRef(javaCameraView);
     }
 
     @Override
@@ -168,6 +169,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
             final Mat menuGrabbedImage = visionSystem.getResultImage().clone();
             final Mat highlightedImage = visionSystem.getHighlightedImage().clone();
+            final Mat screenSimilarityImage = visionSystem.getScreenSimilarityImage().clone();
             final String displayText = visionSystem.lastReadText;
 
             Bitmap initial_bm;
@@ -182,6 +184,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
             final Bitmap result_image_bm = initial_bm.copy(initial_bm.getConfig(),true);
 
+            initial_bm = Bitmap.createBitmap(screenSimilarityImage.cols(), screenSimilarityImage.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(screenSimilarityImage, initial_bm);
+
+            final Bitmap screen_similarity_bm = initial_bm.copy(initial_bm.getConfig(),true);
+
             // Update images on UI
             runOnUiThread(new Runnable() {
 
@@ -193,6 +200,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                     // find the imageview and draw it!
                     iv = (ImageView) findViewById(R.id.highlighted_image_view);
                     iv.setImageBitmap(highlight_bm);
+
+                    iv = (ImageView) findViewById(R.id.screen_similarity_view);
+                    iv.setImageBitmap(screen_similarity_bm);
 
                     visionOutputText.setText(displayText);
 

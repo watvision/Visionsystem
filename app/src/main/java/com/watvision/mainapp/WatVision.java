@@ -1,8 +1,12 @@
 package com.watvision.mainapp;
 
 import android.content.Context;
+import android.os.Handler;
 import android.speech.tts.TextToSpeech;
+import android.util.Log;
+import android.view.Menu;
 
+import org.opencv.android.JavaCameraView;
 import org.opencv.core.Mat;
 
 import java.util.Locale;
@@ -31,6 +35,31 @@ public class WatVision {
 
     private ScreenAnalyzer screenAnalyzer;
 
+    // The current state of the program, used to indicate which screen resolution is being used
+    private watVisionState currentState;
+
+    // Tag used for debugging
+    final static String TAG = "WatVision";
+
+    // Context of main app
+    Context mainContext;
+
+    // Access to the camera
+    private JavaCameraView camera;
+
+    public static int lowResMaxWidth = 1000;
+    public static int lowResMaxHeight = 1000;
+    public static int highResMaxWidth = 1500;
+    public static int highResMaxHeight = 1500;
+
+    // The state enum
+    private enum watVisionState {
+        // Lower resolution state, when we are just findiing the aruco markers
+        TRACKING_MENU,
+        // Higher resolution state, used to get clearer picture for OCR, etc.
+        OBTAINING_SCREEN,
+    };
+
     // Constructor
     public WatVision(Context appContext) {
 
@@ -58,6 +87,11 @@ public class WatVision {
 
         screenAnalyzer = new ScreenAnalyzer(appContext);
 
+        currentState = watVisionState.TRACKING_MENU;
+
+        camera = null;
+
+        mainContext = appContext;
     }
 
     // textSpeaker needs to be paused when the app is paused
@@ -76,15 +110,26 @@ public class WatVision {
 
         if ( resultInfo.menuTracked ) {
 
-            Boolean isSameMenu = screenAnalyzer.isSameScreen(inputtedFrame);
+            Log.d(TAG,"Menu is tracked");
 
-            if (!isSameMenu) {
+            if (currentState == watVisionState.OBTAINING_SCREEN) {
                 readTextNoInterrupt("Menu Found!");
                 screenAnalyzer.analyzePhoto(tracker.resultImage);
                 currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
                         tracker.resultImage.height());
-                screenAnalyzer.setKnownScreen(inputtedFrame);
+                switchStates(watVisionState.TRACKING_MENU);
+            } else if (currentState == watVisionState.TRACKING_MENU) {
+                Boolean isSameMenu = screenAnalyzer.isSameScreen(tracker.resultImage);
+
+                if (!isSameMenu) {
+                    if (currentState != watVisionState.OBTAINING_SCREEN) {
+                        screenAnalyzer.setKnownScreen(tracker.resultImage);
+                        switchStates(watVisionState.OBTAINING_SCREEN);
+                    }
+                }
             }
+
+
 
             if ( resultInfo.fingerData.tracked ) {
 
@@ -168,6 +213,58 @@ public class WatVision {
         readText(locateString);
     }
 
+    public void setJavaCameraViewRef(JavaCameraView inputCamera) {
+        camera = inputCamera;
+    }
+
+    private void switchStates(watVisionState inputState) {
+
+        Handler mainHandler;
+        Runnable myRunnable;
+
+        Log.d(TAG,"Entering state: " + inputState.toString());
+
+        switch (inputState) {
+            case TRACKING_MENU:
+
+                // Get a handler that can be used to post to the main thread
+                mainHandler = new Handler(mainContext.getMainLooper());
+
+                myRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        camera.disableView();
+                        camera.setMaxFrameSize(lowResMaxWidth,lowResMaxHeight);
+                        camera.enableView();
+                    } // This is your code
+                };
+                mainHandler.post(myRunnable);
+                tracker.clearMenuKnowledge();
+                break;
+            case OBTAINING_SCREEN:
+
+                // Get a handler that can be used to post to the main thread
+                mainHandler = new Handler(mainContext.getMainLooper());
+
+                myRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        camera.disableView();
+                        camera.setMaxFrameSize(highResMaxWidth,highResMaxHeight);
+                        camera.enableView();
+                    } // This is your code
+                };
+                mainHandler.post(myRunnable);
+                tracker.clearMenuKnowledge();
+                break;
+            default:
+                break;
+        }
+
+        currentState = inputState;
+
+    }
+
     public Mat getResultImage() {
         return screenAnalyzer.resultImage;
     }
@@ -175,6 +272,8 @@ public class WatVision {
     public Mat getHighlightedImage() {
         return tracker.highlightedImage;
     }
+
+    public Mat getScreenSimilarityImage() { return screenAnalyzer.prevIdentifiedScreen; }
 
 
 }

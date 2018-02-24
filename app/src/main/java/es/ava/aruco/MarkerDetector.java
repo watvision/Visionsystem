@@ -277,7 +277,7 @@ public class MarkerDetector {
 					Imgproc.THRESH_BINARY_INV,(int)thresParam1,thresParam2);
 			break;
 		case CANNY:
-			Imgproc.Canny(src, dst, 300, 300*3,3,false);// TODO this parameters??
+			Imgproc.Canny(src, dst, 200, 200*3,3,false);// TODO this parameters??
 			break;
 		}
 	}

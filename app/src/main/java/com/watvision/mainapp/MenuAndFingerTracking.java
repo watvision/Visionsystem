@@ -298,7 +298,7 @@ public class MenuAndFingerTracking {
         } else {
             // Here we know the menu size
             if (numTrackedCorners >= 1) {
-                Log.d(TAG,"Getting screen with one marker");
+                Log.d(TAG,"Getting screen with one or more markers");
                 returnInfo.menuTracked = true;
                 produceResultingMenu(topLeftMarker,topRightMarker,bottomLeftMarker,bottomRightMarker,
                         resizedImage, camParams);
@@ -312,6 +312,12 @@ public class MenuAndFingerTracking {
 
         return returnInfo;
 	}
+
+	// Remove any knowledge about the menu
+	public void clearMenuKnowledge() {
+	    menuWidth = 0;
+	    menuHeight = 0;
+    }
 
     private void calculateMenuSize(Marker topLeft, Marker topRight, Marker bottomRight, Marker bottomLeft,
                                    CameraParameters camParams) {

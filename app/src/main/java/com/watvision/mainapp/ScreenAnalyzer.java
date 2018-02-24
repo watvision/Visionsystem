@@ -31,6 +31,7 @@ import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
@@ -56,14 +57,16 @@ public class ScreenAnalyzer {
 
     // A previous reference to the identified screen, used to determine if we are looking at
     // a new screen or at the old one
-    private Mat prevIdentifiedScreen;
+    public Mat prevIdentifiedScreen;
 
     // Previously known screen width and height
     private int screenWidth;
     private int screenHeight;
 
     // Identified screen keyPoints
-    List<KeyPoint> screenKeyPoints;
+    private List<KeyPoint> screenKeyPoints;
+
+    private MatOfKeyPoint screenKeyPointsMat;
 
 
 
@@ -170,7 +173,6 @@ public class ScreenAnalyzer {
             }
 
         }
-
     }
 
     public Boolean isSameScreen(Mat inputScreen) {
@@ -182,7 +184,8 @@ public class ScreenAnalyzer {
 
         // Do some other magic to determine if screen is the same
 
-        int numberOfMatchesForSuccess = 50;
+        // If some percentage of the points are in a similar place then it's probably the same screen
+        int numberOfMatchesForSuccess = (int)(screenKeyPoints.size() * 0.5);
 
         FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
         MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
@@ -191,17 +194,30 @@ public class ScreenAnalyzer {
         List<KeyPoint> inputKeyPoints =  keypoints1.toList();
 
         int similarPointSum = 0;
+        int nonSimilarPointSum = 0;
 
         for (int i = 0; i < inputKeyPoints.size(); i++) {
-            if (pointIsNearPointList(inputKeyPoints.get(i),screenWidth*0.005)) {
+            // If the point is within 5% of the width of the screen
+            if (pointIsNearPointList(inputKeyPoints.get(i),screenWidth*0.05)) {
                 similarPointSum++;
-            }
-            if (similarPointSum >= numberOfMatchesForSuccess) {
-                return true;
+            } else {
+                nonSimilarPointSum++;
             }
         }
 
-        return false;
+        // If we are less than the number of matches for success, or there are tons of extra
+        // points that are incorrect
+        if (similarPointSum < numberOfMatchesForSuccess || nonSimilarPointSum > ( screenKeyPoints.size() * 0.8) ) {
+            Log.d(TAG,"Is NOT same screen," +
+                    "did not find enough similar points. similar points: " + similarPointSum +
+                    " total input points: " + inputKeyPoints.size());
+            return false;
+        } else {
+            Log.d(TAG,"Is same screen with: " + similarPointSum + " matches out of "
+            + inputKeyPoints.size() + " input points. Prev screen total points: " + screenKeyPoints.size());
+            return true;
+        }
+
     }
 
     public void clearKnownScreen() {
@@ -215,15 +231,23 @@ public class ScreenAnalyzer {
     }
 
     public void setKnownScreen(Mat inputScreen) {
+        Log.d(TAG,"Setting known screen based on screen width: " + inputScreen.width()
+                + " screen height: " + inputScreen.height());
         prevIdentifiedScreen = inputScreen.clone();
         FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
         MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
         detector.detect(inputScreen,keypoints1);
 
         screenKeyPoints = keypoints1.toList();
+        screenKeyPointsMat = keypoints1;
 
         screenWidth = inputScreen.width();
         screenHeight = inputScreen.height();
+
+        Mat inputRGB = new Mat();
+        Imgproc.cvtColor(prevIdentifiedScreen,inputRGB,Imgproc.COLOR_RGBA2RGB);
+
+        Features2d.drawKeypoints(inputRGB,screenKeyPointsMat,prevIdentifiedScreen);
     }
 
     private Boolean pointIsNearPointList(KeyPoint a, double tolerance) {
