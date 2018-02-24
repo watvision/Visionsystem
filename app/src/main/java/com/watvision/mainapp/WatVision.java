@@ -57,7 +57,9 @@ public class WatVision {
         // Lower resolution state, when we are just findiing the aruco markers
         TRACKING_MENU,
         // Higher resolution state, used to get clearer picture for OCR, etc.
-        OBTAINING_SCREEN,
+        OBTAINING_OCR_SCREEN,
+        // Lower resolution state used to get the differences picture
+        OBTAINING_SCREEN_FEATURES
     };
 
     // Constructor
@@ -112,41 +114,45 @@ public class WatVision {
 
             Log.d(TAG,"Menu is tracked");
 
-            if (currentState == watVisionState.OBTAINING_SCREEN) {
+            // What happens when we need to obtain the screen for OCR purposes
+            if (currentState == watVisionState.OBTAINING_OCR_SCREEN) {
                 readTextNoInterrupt("Menu Found!");
                 screenAnalyzer.analyzePhoto(tracker.resultImage);
                 currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
                         tracker.resultImage.height());
+                switchStates(watVisionState.OBTAINING_SCREEN_FEATURES);
+            // What happens when we need to obtain the screen for feature purposes,
+            // This is separate since the screen resolution is different!
+            } else if (currentState == watVisionState.OBTAINING_SCREEN_FEATURES) {
+                screenAnalyzer.setKnownScreen(tracker.resultImage);
                 switchStates(watVisionState.TRACKING_MENU);
+            // What happens if we are just doing normal tracking
             } else if (currentState == watVisionState.TRACKING_MENU) {
                 Boolean isSameMenu = screenAnalyzer.isSameScreen(tracker.resultImage);
 
+                // If the screen changed then we should capture the new screen
                 if (!isSameMenu) {
-                    if (currentState != watVisionState.OBTAINING_SCREEN) {
-                        screenAnalyzer.setKnownScreen(tracker.resultImage);
-                        switchStates(watVisionState.OBTAINING_SCREEN);
+                        switchStates(watVisionState.OBTAINING_OCR_SCREEN);
+                }
+
+                if ( resultInfo.fingerData.tracked ) {
+
+                    ScreenElement selectedElement = currentScreen.GetElementAtPoint(
+                            resultInfo.fingerData.screenLocation.x,
+                            resultInfo.fingerData.screenLocation.y);
+
+                    if (selectedElement != null) {
+                        String selectedElementText = selectedElement.GetElementDescription();
+
+                        readText(selectedElementText);
+
+                    } else {
+                        // If I move off the element this resets the last read text.
+                        lastReadText = "No Element Present";
                     }
                 }
             }
 
-
-
-            if ( resultInfo.fingerData.tracked ) {
-
-                ScreenElement selectedElement = currentScreen.GetElementAtPoint(
-                        resultInfo.fingerData.screenLocation.x,
-                        resultInfo.fingerData.screenLocation.y);
-
-                if (selectedElement != null) {
-                    String selectedElementText = selectedElement.GetElementDescription();
-
-                    readText(selectedElementText);
-
-                } else {
-                    // If I move off the element this resets the last read text.
-                    lastReadText = "No Element Present";
-                }
-            }
         } else {
             narrateScreenLocation(resultInfo);
         }
@@ -227,6 +233,9 @@ public class WatVision {
         switch (inputState) {
             case TRACKING_MENU:
 
+                break;
+            case OBTAINING_OCR_SCREEN:
+
                 // Get a handler that can be used to post to the main thread
                 mainHandler = new Handler(mainContext.getMainLooper());
 
@@ -234,14 +243,14 @@ public class WatVision {
                     @Override
                     public void run() {
                         camera.disableView();
-                        camera.setMaxFrameSize(lowResMaxWidth,lowResMaxHeight);
+                        camera.setMaxFrameSize(highResMaxWidth,highResMaxHeight);
                         camera.enableView();
                     } // This is your code
                 };
                 mainHandler.post(myRunnable);
                 tracker.clearMenuKnowledge();
                 break;
-            case OBTAINING_SCREEN:
+            case OBTAINING_SCREEN_FEATURES:
 
                 // Get a handler that can be used to post to the main thread
                 mainHandler = new Handler(mainContext.getMainLooper());

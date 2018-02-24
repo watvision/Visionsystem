@@ -169,7 +169,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
             final Mat menuGrabbedImage = visionSystem.getResultImage().clone();
             final Mat highlightedImage = visionSystem.getHighlightedImage().clone();
-            final Mat screenSimilarityImage = visionSystem.getScreenSimilarityImage().clone();
+            final Mat screenSimilarityImage;
+            if (visionSystem.getScreenSimilarityImage() != null) {
+                screenSimilarityImage = visionSystem.getScreenSimilarityImage().clone();
+            } else {
+                screenSimilarityImage = Mat.zeros(100,100,menuGrabbedImage.type());
+            }
             final String displayText = visionSystem.lastReadText;
 
             Bitmap initial_bm;
