@@ -47,8 +47,8 @@ public class WatVision {
     // Access to the camera
     private JavaCameraView camera;
 
-    public static int lowResMaxWidth = 1000;
-    public static int lowResMaxHeight = 1000;
+    public static int lowResMaxWidth = 800;
+    public static int lowResMaxHeight = 800;
     public static int highResMaxWidth = 1500;
     public static int highResMaxHeight = 1500;
 
@@ -259,7 +259,7 @@ public class WatVision {
                     @Override
                     public void run() {
                         camera.disableView();
-                        camera.setMaxFrameSize(highResMaxWidth,highResMaxHeight);
+                        camera.setMaxFrameSize(lowResMaxWidth,lowResMaxHeight);
                         camera.enableView();
                     } // This is your code
                 };
