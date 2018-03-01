@@ -301,6 +301,14 @@ public class WatVision {
         }
     }
 
+    public void lockCornerPoints() {
+        tracker.lockCornerPoints();
+    }
+
+    public void unlockCornerPoints() {
+        tracker.unlockCornerPoints();
+    }
+
     public Mat getResultImage() {
         return screenAnalyzer.resultImage;
     }

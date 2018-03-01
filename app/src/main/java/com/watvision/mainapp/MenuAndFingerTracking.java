@@ -45,6 +45,16 @@ public class MenuAndFingerTracking {
     private double menuWidth;
     private double menuHeight;
 
+    // If true then lock the last known corner positions in place
+    private Boolean lockedCornerState;
+    private Boolean prevLockedCornerState;
+
+    // Information used to save the state of the system
+    private ArrayList<Point> savedCornerList;
+    private Mat savedWarpMatrix;
+    private double savedResultMenuWidth;
+    private double savedResultMenuHeight;
+
 	// Finger Info Class
     // Stores relevant information for the pointer or where the finger of the person is.
 	public class fingerInfo {
@@ -186,10 +196,123 @@ public class MenuAndFingerTracking {
 
 		menuWidth = 0;
 		menuHeight = 0;
+
+		savedCornerList = null;
+		lockedCornerState = false;
+		savedWarpMatrix = null;
+		prevLockedCornerState = false;
 	}
 
-	// Called on an incoming frame. Outputs the menu and finger information for an incoming image
-	public menuAndFingerInfo grabMenuAndFingerInfo(Mat inputImage) {
+    // Called on an incoming frame. Outputs the menu and finger information for an incoming image
+    public menuAndFingerInfo grabMenuAndFingerInfo(Mat inputImage) {
+
+	    menuAndFingerInfo returnInfo;
+
+	    // This method isn't exactly thread safe... Really should be using a semaphore or something
+
+        if (prevLockedCornerState != lockedCornerState) {
+            if (!lockedCornerState) {
+                // We are transitioning from locked to unlocked
+                clearMenuKnowledge();
+            } else {
+                // We are transitioning from unlocked to locked
+                savedCornerList = null;
+                savedWarpMatrix = null;
+            }
+        }
+
+	    if (lockedCornerState && savedCornerList != null) {
+	        // Return info from saved corner state
+            returnInfo = grabLockedMenuAndFingerInfoFromImage(inputImage);
+        } else {
+            returnInfo = grabMenuAndFingerInfoFromImage(inputImage);
+        }
+
+        prevLockedCornerState = lockedCornerState;
+
+        return returnInfo;
+    }
+
+    // Getting menu and finger info from the saved corner point locations using only a subimage
+    private menuAndFingerInfo grabLockedMenuAndFingerInfoFromImage(Mat inputImage) {
+        Mat resizedImage;
+
+        menuAndFingerInfo returnInfo = new menuAndFingerInfo();
+
+        Marker fingerMarker = null;
+
+        // The image may need some resizing. It seems to come in warped. For now leaving the image unaltered
+        resizedImage = new Mat(inputImage.rows(),(int) (inputImage.cols()*0.561165),inputImage.type());
+        Imgproc.resize(inputImage, resizedImage, resizedImage.size(), 0, 0, Imgproc.INTER_CUBIC);
+
+        // Setup required parameters for detect method
+        MarkerDetector mDetector = new MarkerDetector();
+        Vector<Marker> detectedMarkers = new Vector<>();
+        CameraParameters camParams = new CameraParameters();
+
+        camParams.loadConstandCalibration(resizedImage.cols()/2,resizedImage.rows()/2);
+
+        // Validate camera Parameters
+        if (camParams.isValid()) {
+            Log.i(TAG,"VALID cam Params");
+        } else {
+            // Invalid camera params return incorrect
+            Log.i(TAG,"INVALID Cam Params");
+            returnInfo.markInvalid();
+            return returnInfo;
+        }
+
+        // Find the finger based on the smaller subimage
+        // Populate detectedMarkers
+        mDetector.detect(resizedImage, detectedMarkers, camParams, MARKER_SIZE);
+
+        // Detect markers and provide info
+        if (detectedMarkers.size() != 0) {
+
+            Log.i(TAG, "Detected markers!");
+
+            Imgproc.cvtColor(resizedImage, highlightedImage, Imgproc.COLOR_RGBA2RGB);
+
+            for (int i = 0; i < detectedMarkers.size(); i++) {
+                Marker marker = detectedMarkers.get(i);
+
+                int markerID = marker.getMarkerId();
+                Log.i(TAG,"Marker id:" + markerID);
+
+                if (markerID >= 0) {
+                    highlightMarker(marker,camParams);
+                }
+
+                if (markerID == 5) {
+                    fingerMarker = marker;
+                }
+            }
+        }
+
+        if (fingerMarker != null && returnInfo.menuTracked) {
+            // Track and output finger info
+            produceFingerInfo(fingerMarker,returnInfo,camParams);
+        }
+
+        // Artificially set that the menu is tracked
+        returnInfo.menuTracked = true;
+        returnInfo.topLeftTracked = true;
+        returnInfo.topRightTracked = true;
+        returnInfo.bottomRightTracked = true;
+        returnInfo.bottomLeftTracked = true;
+
+        Imgproc.warpPerspective(resizedImage, resultImage, savedWarpMatrix, new Size(savedResultMenuWidth,savedResultMenuHeight));
+
+        // Draw highlights on the image
+        for (int i = 0; i < 4; i++) {
+            Imgproc.line(highlightedImage,savedCornerList.get(i),savedCornerList.get((i+1) % 4), new Scalar(255,0,0),lineThickness);
+        }
+
+        return returnInfo;
+    }
+
+	// Getting menu and finger info from a full image using the regular algorithm
+	private menuAndFingerInfo grabMenuAndFingerInfoFromImage(Mat inputImage) {
 		Mat resizedImage;
 
         menuAndFingerInfo returnInfo = new menuAndFingerInfo();
@@ -432,6 +555,14 @@ public class MenuAndFingerTracking {
 
         Imgproc.warpPerspective(inputImage, resultImage, warp_matrix, new Size(width,height));
 
+        // If we are in the locked state then save the corner point list
+        if (lockedCornerState) {
+            savedCornerList = cornerList;
+            savedWarpMatrix = perspective_warp_matrix.clone();
+            savedResultMenuWidth = width;
+            savedResultMenuHeight = height;
+        }
+
         // Draw the highlights on the image
         for (int i = 0; i < 4; i++) {
             Imgproc.line(highlightedImage,cornerList.get(i),cornerList.get((i+1) % 4), new Scalar(255,0,0),lineThickness);
@@ -595,6 +726,14 @@ public class MenuAndFingerTracking {
         returnInfo.fingerData.imageLocation = markerCenterImage;
         returnInfo.fingerData.screenLocation = screenTipPoint;
         returnInfo.fingerData.tracked = true;
+    }
+
+    public void lockCornerPoints() {
+	    lockedCornerState = true;
+    }
+
+    public void unlockCornerPoints() {
+	    lockedCornerState = false;
     }
 
     // Distance between two points

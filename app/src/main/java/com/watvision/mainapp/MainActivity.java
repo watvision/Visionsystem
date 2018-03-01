@@ -17,6 +17,7 @@ import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
 
 import android.util.Log;
@@ -141,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         }
 
+        // The bluetooth message handler
         Handler visionSystemHandler = new Handler(Looper.getMainLooper()) {
             @Override
             public void handleMessage(Message inputMessage) {
@@ -162,6 +164,33 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         visionSystem = new WatVision(getApplicationContext(), btScanner, visionSystemHandler);
 
         visionSystem.setJavaCameraViewRef(javaCameraView);
+
+        final Button lockMenuButton = (Button) findViewById(R.id.lock_camera_button);
+
+        lockMenuButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (lockMenuButton.getText().equals("X")) {
+                    Log.d(TAG,"Locking menu");
+                    visionSystem.lockCornerPoints();
+
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            lockMenuButton.setText("O");
+                        }
+                    });
+                } else {
+                    Log.d(TAG,"Unlocking menu");
+                    visionSystem.unlockCornerPoints();
+
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            lockMenuButton.setText("X");
+                        }
+                    });
+                }
+            }
+        });
+
     }
 
     @Override

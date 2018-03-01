@@ -62,5 +62,29 @@
 
     </LinearLayout>
 
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
+
+        <Button
+            android:id="@+id/lock_camera_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="X"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentBottom="true"  />
+
+        <Button
+            android:id="@+id/unlock_camera_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="O"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentBottom="true"
+            android:visibility="invisible"/>
+
+    </RelativeLayout>
+
+
 
 </android.support.constraint.ConstraintLayout>
