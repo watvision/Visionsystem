@@ -1,7 +1,19 @@
 package com.watvision.mainapp;
 
+import android.Manifest;
+import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.WindowManager;
@@ -42,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     JavaCameraView javaCameraView;
     TextView visionOutputText;
+    TextView bluetoothText;
 
     // Initialize OpenCV libraries
     static {
@@ -70,6 +83,15 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     Mat mGray;
 
+    // Used for requesting location for bluetooth
+    private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
+    private final static int REQUEST_ENABLE_BT = 1;
+
+    // Variables used to control bluetooth
+    BluetoothManager btManager;
+    BluetoothAdapter btAdapter;
+    BluetoothLeScanner btScanner;
+
     // Constructor
     public MainActivity() {
         Log.i(TAG, "Instantiated new " + this.getClass());
@@ -92,8 +114,53 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         javaCameraView.enableFpsMeter();
 
         visionOutputText = (TextView) findViewById(R.id.vision_output_text);
+        bluetoothText = (TextView) findViewById(R.id.bluetooth_status);
 
-        visionSystem = new WatVision(getApplicationContext());
+        //Check we have location permission
+        // Make sure we have access coarse location enabled, if not, prompt the user to enable it
+        if (this.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("This app needs location access");
+            builder.setMessage("Please grant location access so this app can detect peripherals.");
+            builder.setPositiveButton(android.R.string.ok, null);
+            builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSION_REQUEST_COARSE_LOCATION);
+                }
+            });
+            builder.show();
+        }
+
+        btManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        btAdapter = btManager.getAdapter();
+        btScanner = btAdapter.getBluetoothLeScanner();
+
+        if (btAdapter != null && !btAdapter.isEnabled()) {
+            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+        }
+
+        Handler visionSystemHandler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message inputMessage) {
+                // Gets the image task from the incoming Message object.
+                Log.d(TAG,"Updating bluetooth text " + inputMessage.arg1 + " " + inputMessage.arg2);
+
+                if (inputMessage.arg1 == WatBlueToothService.bluetoothStates.CONNECTED.ordinal()) {
+                    bluetoothText.setText("Device connected");
+                } else if (inputMessage.arg1 == WatBlueToothService.bluetoothStates.FAILED_TO_CONNECT.ordinal()) {
+                    bluetoothText.setText("Device failed to connect");
+                } else if (inputMessage.arg1 == WatBlueToothService.bluetoothStates.DISCONNECTED.ordinal()) {
+                    bluetoothText.setText("Device disconnected");
+                } else if (inputMessage.arg1 == -1) {
+                    bluetoothText.setText("Initialized");
+                }
+            }
+        };
+
+        visionSystem = new WatVision(getApplicationContext(), btScanner, visionSystemHandler);
+
         visionSystem.setJavaCameraViewRef(javaCameraView);
     }
 
@@ -119,6 +186,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             Log.i(TAG,"OpenCV not loaded");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallBack);
         }
+        visionSystem.resume();
     }
 
     public void onDestroy() {
@@ -126,6 +194,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         if (javaCameraView != null) {
             javaCameraView.disableView();
         }
+        visionSystem.destroy();
     }
 
     public void onCameraViewStarted(int width, int height) {
