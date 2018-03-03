@@ -1,5 +1,6 @@
 package com.watvision.mainapp;
 
+import android.bluetooth.le.BluetoothLeScanner;
 import android.content.Context;
 import android.os.Handler;
 import android.speech.tts.TextToSpeech;
@@ -50,10 +51,13 @@ public class WatVision {
     // VibrateController
     public VibrateControls Vibrate;
 
-    public static int lowResMaxWidth = 1000;
-    public static int lowResMaxHeight = 1000;
+    public static int lowResMaxWidth = 800;
+    public static int lowResMaxHeight = 800;
     public static int highResMaxWidth = 1500;
     public static int highResMaxHeight = 1500;
+
+    // Bluetooth services
+    WatBlueToothService blueToothService;
 
     // The state enum
     private enum watVisionState {
@@ -66,7 +70,7 @@ public class WatVision {
     };
 
     // Constructor
-    public WatVision(Context appContext) {
+    public WatVision(Context appContext, BluetoothLeScanner inputScanner, Handler mainLoopHandler) {
 
         applicationContext = appContext;
 
@@ -99,6 +103,10 @@ public class WatVision {
         mainContext = appContext;
 
         Vibrate = new VibrateControls(appContext);
+
+        blueToothService = new WatBlueToothService(inputScanner, mainContext, mainLoopHandler);
+
+        blueToothService.InitiateConnection();
     }
 
     // textSpeaker needs to be paused when the app is paused
@@ -106,6 +114,9 @@ public class WatVision {
         if(textSpeaker !=null){
             textSpeaker.stop();
             textSpeaker.shutdown();
+        }
+        if (blueToothService != null) {
+            blueToothService.pause();
         }
     }
 
@@ -149,7 +160,11 @@ public class WatVision {
                     if (selectedElement != null) {
                         String selectedElementText = selectedElement.GetElementDescription();
 
-                        readText(selectedElementText);
+                        // If it is a new element
+                        if (!selectedElementText.equals(lastReadText)) {
+                            blueToothService.Buzz();
+                            readText(selectedElementText);
+                        }
 
                     } else {
                         // If I move off the element this resets the last read text.
@@ -264,7 +279,7 @@ public class WatVision {
                     @Override
                     public void run() {
                         camera.disableView();
-                        camera.setMaxFrameSize(highResMaxWidth,highResMaxHeight);
+                        camera.setMaxFrameSize(lowResMaxWidth,lowResMaxHeight);
                         camera.enableView();
                     } // This is your code
                 };
@@ -277,6 +292,18 @@ public class WatVision {
 
         currentState = inputState;
 
+    }
+
+    public void destroy() {
+        if (blueToothService != null) {
+            blueToothService.destroy();
+        }
+    }
+
+    public void resume() {
+        if (blueToothService != null) {
+            blueToothService.resume();
+        }
     }
 
     public Mat getResultImage() {

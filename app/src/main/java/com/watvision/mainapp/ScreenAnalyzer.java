@@ -182,10 +182,17 @@ public class ScreenAnalyzer {
             return false;
         }
 
+        // Number of points that are similar to the identified screen
+        double similarPointPercentage = 0.2;
+
+        // Number of points that are different to the identified screen
+        double differentPointPercentage = 0.8;
+
+
         // Do some other magic to determine if screen is the same
 
         // If some percentage of the points are in a similar place then it's probably the same screen
-        int numberOfMatchesForSuccess = (int)(screenKeyPoints.size() * 0.5);
+        int numberOfMatchesForSuccess = (int)(screenKeyPoints.size() * similarPointPercentage);
 
         FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
         MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
@@ -207,10 +214,17 @@ public class ScreenAnalyzer {
 
         // If we are less than the number of matches for success, or there are tons of extra
         // points that are incorrect
-        if (similarPointSum < numberOfMatchesForSuccess || nonSimilarPointSum > ( screenKeyPoints.size() * 0.8) ) {
+        if (similarPointSum < numberOfMatchesForSuccess || nonSimilarPointSum > ( screenKeyPoints.size() * differentPointPercentage) ) {
             Log.d(TAG,"Is NOT same screen," +
                     "did not find enough similar points. similar points: " + similarPointSum +
                     " total input points: " + inputKeyPoints.size());
+
+            if (similarPointSum < numberOfMatchesForSuccess) {
+                Log.d(TAG,"Failed on similar points");
+            } else {
+                Log.d(TAG,"Failed on different points");
+            }
+
             return false;
         } else {
             Log.d(TAG,"Is same screen with: " + similarPointSum + " matches out of "
