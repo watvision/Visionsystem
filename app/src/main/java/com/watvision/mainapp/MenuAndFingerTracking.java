@@ -308,6 +308,11 @@ public class MenuAndFingerTracking {
             Imgproc.line(highlightedImage,savedCornerList.get(i),savedCornerList.get((i+1) % 4), new Scalar(255,0,0),lineThickness);
         }
 
+        if (fingerMarker != null && returnInfo.menuTracked) {
+            // Track and output finger info
+            produceFingerInfo(fingerMarker,returnInfo,camParams);
+        }
+
         return returnInfo;
     }
 
