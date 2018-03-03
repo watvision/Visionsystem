@@ -169,7 +169,8 @@ public class WatVision {
             }
 
         } else {
-            narrateScreenLocation(resultInfo);
+            // Narrate screen isn't in use anymore
+            //narrateScreenLocation(resultInfo);
         }
 
         return resultInfo;
@@ -203,6 +204,9 @@ public class WatVision {
         }
     }
 
+    // I've deprecated this function since the code doesn't apply anymore to changes
+    /*
+    // Narrate the screen based off the known corner locations
     private void narrateScreenLocation(MenuAndFingerTracking.menuAndFingerInfo menuInfo) {
 
         String locateString = "";
@@ -233,6 +237,7 @@ public class WatVision {
 
         readText(locateString);
     }
+    */
 
     public void setJavaCameraViewRef(JavaCameraView inputCamera) {
         camera = inputCamera;
