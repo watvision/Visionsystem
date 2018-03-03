@@ -3,11 +3,13 @@ package com.watvision.mainapp;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
 import android.util.Log;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -18,17 +20,8 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.android.Utils;
-
-import java.util.List;
-import java.util.Vector;
-
-import es.ava.aruco.CameraParameters;
-import es.ava.aruco.Marker;
-import es.ava.aruco.MarkerDetector;
 
 // Main Activity - Created 2018-01-13
 // Initiates the Camera, and other UI elements. This class deals with everything related to the
@@ -95,6 +88,22 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         visionSystem = new WatVision(getApplicationContext());
         visionSystem.setJavaCameraViewRef(javaCameraView);
+
+        // Enable the code below to allow for testvibrate testing
+        // Touch and hold screen anywhere to call testvibrate
+        LinearLayout rlayout = (LinearLayout) findViewById(R.id.mainscreen);
+        rlayout.setOnTouchListener(new View.OnTouchListener() {
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN)
+                    visionSystem.Vibrate.testvibrate(true);
+                else if(event.getAction() == MotionEvent.ACTION_UP)
+                    visionSystem.Vibrate.testvibrate(false);
+                return true;
+            }
+
+        });
     }
 
     @Override

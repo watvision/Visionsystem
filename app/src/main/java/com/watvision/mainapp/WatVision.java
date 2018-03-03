@@ -47,6 +47,9 @@ public class WatVision {
     // Access to the camera
     private JavaCameraView camera;
 
+    // VibrateController
+    public VibrateControls Vibrate;
+
     public static int lowResMaxWidth = 1000;
     public static int lowResMaxHeight = 1000;
     public static int highResMaxWidth = 1500;
@@ -94,6 +97,8 @@ public class WatVision {
         camera = null;
 
         mainContext = appContext;
+
+        Vibrate = new VibrateControls(appContext);
     }
 
     // textSpeaker needs to be paused when the app is paused
