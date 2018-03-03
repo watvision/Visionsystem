@@ -36,6 +36,7 @@ public class WatBlueToothService {
 
     private static final String TAG = "WatBlueToothService";
     private String MY_UUID_STRING = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    private boolean connected = false;
 
     public enum bluetoothStates {
         CONNECTED,
@@ -57,6 +58,8 @@ public class WatBlueToothService {
     BluetoothDevice wearableDevice;
 
     BluetoothGattCharacteristic buzzCharacteristic;
+
+    BluetoothGattCharacteristic vibrateCharac;
 
     Handler mainLoopHandler;
 
@@ -170,6 +173,8 @@ public class WatBlueToothService {
         byte[] value = new byte[1];
         value[0] = (byte) 'A';
         buzzCharacteristic.setValue(value);
+
+        vibrateCharac = charac;
     }
 
 
@@ -207,13 +212,14 @@ public class WatBlueToothService {
     private void connectToWearable() {
         Message msg = mainLoopHandler.obtainMessage();
 
-
         if (wearableDevice != null) {
             bluetoothGatt = wearableDevice.connectGatt(appContext, false, ESP32btleGattCallback);
             msg.arg1 = bluetoothStates.CONNECTED.ordinal();
+            connected = true;
         } else {
             Log.d(TAG,"Tried to connect to a null device");
             msg.arg1 = bluetoothStates.FAILED_TO_CONNECT.ordinal();
+            connected = false;
         }
 
         msg.arg2 = 0;
@@ -234,6 +240,22 @@ public class WatBlueToothService {
         }
     }
 
+    public void vibrate(int i) {
+        byte[] val = {'A', (byte)(i+48)};
+        vibrateCharac.setValue(val);
+        if (buzzCharacteristic != null) {
+            boolean status = bluetoothGatt.writeCharacteristic(buzzCharacteristic);
+
+            if (status) {
+                Log.d(TAG,"Vibrate Successful!");
+            } else {
+                Log.d(TAG,"Vibrate Failure!");
+            }
+        } else {
+            Log.d(TAG,"Vibrate characteristic is null");
+        }
+    }
+
     private void broadcastUpdate(final String action,
                                  final BluetoothGattCharacteristic characteristic) {
 
@@ -245,6 +267,7 @@ public class WatBlueToothService {
         if (bluetoothGatt != null) {
             bluetoothGatt.disconnect();
         }
+        connected = false;
         Message msg = mainLoopHandler.obtainMessage();
         msg.arg1 = bluetoothStates.DISCONNECTED.ordinal();
         msg.arg2 = 0;
@@ -263,5 +286,7 @@ public class WatBlueToothService {
         // In an ideal world we would reconnect to bluetooth when we resume the app
         //connectToWearable();
     }
+
+    public boolean isConnected() { return connected; }
 
 }
