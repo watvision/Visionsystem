@@ -58,6 +58,9 @@ public class WatVision {
     // Bluetooth services
     WatBlueToothService blueToothService;
 
+    // A request for a new screen has been raised
+    private boolean newScreenRequestFlag;
+
     // The state enum
     private enum watVisionState {
         // Lower resolution state, when we are just findiing the aruco markers
@@ -106,9 +109,22 @@ public class WatVision {
 
         mainContext = appContext;
 
-        blueToothService = new WatBlueToothService(inputScanner, mainContext, mainLoopHandler);
+        blueToothService = new WatBlueToothService(inputScanner, mainContext, mainLoopHandler,this);
 
         blueToothService.InitiateConnection();
+
+        newScreenRequestFlag = false;
+
+        // Create repeating read task
+        final Timer readTimer = new Timer();
+        final TimerTask readTask = new TimerTask() {
+            @Override
+            public void run() {
+                blueToothService.readButton();
+            }
+        };
+        readTimer.scheduleAtFixedRate(readTask,5000,1000);
+
     }
 
     // textSpeaker needs to be paused when the app is paused
@@ -148,8 +164,8 @@ public class WatVision {
             } else if (currentState == watVisionState.TRACKING_MENU) {
                 Boolean isSameMenu = screenAnalyzer.isSameScreen(tracker.resultImage);
 
-                // If the screen changed then we should capture the new screen
-                if (!isSameMenu) {
+                // If the screen changed or we have a request to change then we should capture the new screen
+                if (!isSameMenu || newScreenRequestFlag) {
                         switchStates(watVisionState.WAITING_TO_CAPTURE_SCREEN);
                 }
 
@@ -305,6 +321,7 @@ public class WatVision {
                 final int numberReadDelay = 500;
 
                 readText("Please move hand off screen so new screen can be captured. Capturing in: ");
+                newScreenRequestFlag = false;
 
                 // Initiate the countdown
                 for (int i = 0; i < secondsToCountdown; i++) {
@@ -333,6 +350,10 @@ public class WatVision {
 
         currentState = inputState;
 
+    }
+
+    public void requestNewScreen() {
+        newScreenRequestFlag = true;
     }
 
     public void destroy() {
