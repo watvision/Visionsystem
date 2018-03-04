@@ -13,6 +13,7 @@ public class VibrateControls {
     boolean BTEnable;
     Vibrator phoneVib;
     int iter;
+    int iter2;
 
     // Intensity settings for local vibration
     private long[] intensity = {400, 350, 300, 250, 200, 150, 100};
@@ -30,6 +31,7 @@ public class VibrateControls {
         phoneVib = (Vibrator) appContext.getSystemService(Context.VIBRATOR_SERVICE);
         blueToothService = bts;
         iter = 0;
+        iter2 = 1;
     }
 
     // Test function for local vibrate
@@ -38,6 +40,12 @@ public class VibrateControls {
             long[] timings = {intensity[iter], intensity[iter], intensity[iter], intensity[iter], 200};
             int[] amp = {0, 255, 0, 255, 0};
             phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
+            if(blueToothService.isConnected()) {
+                blueToothService.vibrate(iter2);
+                iter2++;
+                if(iter2 > 116)
+                    iter2 = 1;
+            }
         } else {
             phoneVib.cancel();
             iter++;

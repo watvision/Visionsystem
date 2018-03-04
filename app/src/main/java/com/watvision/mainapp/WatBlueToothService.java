@@ -241,7 +241,7 @@ public class WatBlueToothService {
     }
 
     public void vibrate(int i) {
-        byte[] val = {'A', (byte)(i+48)};
+        byte[] val = {'A', (byte)i};
         vibrateCharac.setValue(val);
         if (buzzCharacteristic != null) {
             boolean status = bluetoothGatt.writeCharacteristic(buzzCharacteristic);
