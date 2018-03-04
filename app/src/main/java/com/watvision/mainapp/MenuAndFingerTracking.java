@@ -750,6 +750,7 @@ public class MenuAndFingerTracking {
     }
 
     public void lockCornerPoints() {
+	    clearMenuKnowledge();
 	    lockedCornerState = true;
     }
 
