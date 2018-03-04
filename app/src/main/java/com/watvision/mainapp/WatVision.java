@@ -11,6 +11,8 @@ import org.opencv.android.JavaCameraView;
 import org.opencv.core.Mat;
 
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 // WatVision - Created 2018-01-13
 // Identifies a screen, and its elements and then determines if a user is pointing to a screen
@@ -63,7 +65,9 @@ public class WatVision {
         // Higher resolution state, used to get clearer picture for OCR, etc.
         OBTAINING_OCR_SCREEN,
         // Lower resolution state used to get the differences picture
-        OBTAINING_SCREEN_FEATURES
+        OBTAINING_SCREEN_FEATURES,
+        // Waiting State, not doing any outputs during this state
+        WAITING_TO_CAPTURE_SCREEN
     };
 
     // Constructor
@@ -84,7 +88,7 @@ public class WatVision {
             public void onInit(int status) {
                 if(status != TextToSpeech.ERROR) {
                     textSpeaker.setLanguage(Locale.ENGLISH);
-                    readTextNoInterrupt("Please point your camera at the screen. Directions will be given when a corner is seen.");
+                    readText("Please point your camera at the screen. Directions will be given when a corner is seen.");
                 }
             }
         });
@@ -130,7 +134,6 @@ public class WatVision {
 
             // What happens when we need to obtain the screen for OCR purposes
             if (currentState == watVisionState.OBTAINING_OCR_SCREEN) {
-                readTextNoInterrupt("Menu Found!");
                 screenAnalyzer.analyzePhoto(tracker.resultImage);
                 currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
                         tracker.resultImage.height());
@@ -146,7 +149,7 @@ public class WatVision {
 
                 // If the screen changed then we should capture the new screen
                 if (!isSameMenu) {
-                        switchStates(watVisionState.OBTAINING_OCR_SCREEN);
+                        switchStates(watVisionState.WAITING_TO_CAPTURE_SCREEN);
                 }
 
                 if ( resultInfo.fingerData.tracked ) {
@@ -169,6 +172,8 @@ public class WatVision {
                         lastReadText = "No Element Present";
                     }
                 }
+            } else if (currentState == watVisionState.WAITING_TO_CAPTURE_SCREEN) {
+                // Do nothing during the waiting state
             }
 
         } else {
@@ -256,8 +261,11 @@ public class WatVision {
         switch (inputState) {
             case TRACKING_MENU:
 
+                readText("Menu analysis finished, please explore the menu");
                 break;
             case OBTAINING_OCR_SCREEN:
+
+                readText("Processing");
 
                 // Get a handler that can be used to post to the main thread
                 mainHandler = new Handler(mainContext.getMainLooper());
@@ -288,6 +296,35 @@ public class WatVision {
                 };
                 mainHandler.post(myRunnable);
                 tracker.clearMenuKnowledge();
+                break;
+            case WAITING_TO_CAPTURE_SCREEN:
+
+                final int secondsToCountdown = 3;
+                final int initialReadDelay = 3500;
+                final int numberReadDelay = 500;
+
+                readText("Please move hand off screen so new screen can be captured. Capturing in: ");
+
+                // Initiate the countdown
+                for (int i = 0; i < secondsToCountdown; i++) {
+                    final int countdownNumber = i;
+                    new Timer().schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            Log.d(TAG,"Reading some number");
+                            readText(Integer.toString(secondsToCountdown - countdownNumber));
+                        }
+                    }, i*1000 + initialReadDelay);
+                }
+
+
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        switchStates(watVisionState.OBTAINING_OCR_SCREEN);
+                    }
+                }, secondsToCountdown*1000 + initialReadDelay + numberReadDelay);
+
                 break;
             default:
                 break;
