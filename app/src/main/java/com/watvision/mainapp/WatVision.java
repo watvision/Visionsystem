@@ -89,6 +89,9 @@ public class WatVision {
             }
         });
 
+        // Increase text read rate
+        textSpeaker.setSpeechRate((float)2.0);
+
         narratorSpoken = false;
 
         screenAnalyzer = new ScreenAnalyzer(appContext);
