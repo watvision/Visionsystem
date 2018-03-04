@@ -141,7 +141,8 @@ public class WatVision {
             // This is separate since the screen resolution is different!
             } else if (currentState == watVisionState.OBTAINING_SCREEN_FEATURES) {
                 screenAnalyzer.setKnownScreen(tracker.resultImage);
-                Vibrate.generateProximityField(currentScreen.getAllElements(), tracker.resultImage.width(), tracker.resultImage.height());
+                //TODO: enable proximity field and update vibration based on it
+                //Vibrate.generateProximityField(currentScreen.getAllElements(), tracker.resultImage.width(), tracker.resultImage.height());
                 switchStates(watVisionState.TRACKING_MENU);
             // What happens if we are just doing normal tracking
             } else if (currentState == watVisionState.TRACKING_MENU) {
@@ -157,7 +158,8 @@ public class WatVision {
                     ScreenElement selectedElement = currentScreen.GetElementAtPoint(
                             resultInfo.fingerData.screenLocation.x,
                             resultInfo.fingerData.screenLocation.y);
-                    Vibrate.vibrate(resultInfo.fingerData.screenLocation);
+                    //TODO: enable proximity field and update vibration based on it
+                    //Vibrate.vibrate(resultInfo.fingerData.screenLocation);
 
                     if (selectedElement != null) {
                         String selectedElementText = selectedElement.GetElementDescription();
