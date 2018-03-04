@@ -137,6 +137,7 @@ public class WatVision {
                 screenAnalyzer.analyzePhoto(tracker.resultImage);
                 currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
                         tracker.resultImage.height());
+                screenAnalyzer.highlightTextOnResultImage(currentScreen.getAllElements());
                 switchStates(watVisionState.OBTAINING_SCREEN_FEATURES);
             // What happens when we need to obtain the screen for feature purposes,
             // This is separate since the screen resolution is different!

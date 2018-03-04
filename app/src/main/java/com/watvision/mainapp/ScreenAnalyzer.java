@@ -63,6 +63,10 @@ public class ScreenAnalyzer {
     private int screenWidth;
     private int screenHeight;
 
+    // TODO: Fix this hack!!
+    private int screenWidth_OCR;
+    private int screenHeight_OCR;
+
     // Identified screen keyPoints
     private List<KeyPoint> screenKeyPoints;
 
@@ -92,6 +96,9 @@ public class ScreenAnalyzer {
         prevIdentifiedScreen = null;
         screenWidth = 0;
         screenHeight = 0;
+
+        screenWidth_OCR = 0;
+        screenHeight_OCR = 0;
     }
 
     public void analyzePhoto(Mat inputMat) {
@@ -101,7 +108,6 @@ public class ScreenAnalyzer {
         analyzePhoto(bm);
 
         resultImage = inputMat.clone();
-        highlightTextOnResultImage();
     }
 
     public void analyzePhoto(Bitmap inputBitmap) {
@@ -142,6 +148,9 @@ public class ScreenAnalyzer {
 
             Log.w(TAG,"Detected " + textBlocks.size() + " text objects");
 
+            screenWidth_OCR = inputBitmap.getWidth();
+            screenHeight_OCR = inputBitmap.getHeight();
+
             for (int i = 0; i < textBlocks.size(); i++) {
                 TextBlock textBlock = textBlocks.get(textBlocks.keyAt(i));
 
@@ -169,6 +178,34 @@ public class ScreenAnalyzer {
             }
 
             for (int j = 0; j < 4; j++) {
+                Imgproc.line(resultImage,openCVPointList[j],openCVPointList[(j+1)%4], new Scalar(255,0,0), 3);
+            }
+
+        }
+    }
+
+    public void highlightTextOnResultImage(ArrayList<ScreenElement> elements) {
+
+        for (int i = 0; i < elements.size(); i++) {
+            ScreenElement visitor = elements.get(i);
+
+            org.opencv.core.Point[] openCVPointList = new org.opencv.core.Point[4];
+
+            double leftX = visitor.getX_base() * screenWidth_OCR;
+            double topY = visitor.getY_base() * screenHeight_OCR;
+            double rightX = (visitor.getX_base() + visitor.getX_Width())* screenWidth_OCR;
+            double bottomY = (visitor.getY_base() + visitor.getY_length()) * screenHeight_OCR;
+
+            openCVPointList[0] = new org.opencv.core.Point(leftX,topY);
+            openCVPointList[1] = new org.opencv.core.Point(rightX,topY);
+            openCVPointList[2] = new org.opencv.core.Point(rightX,bottomY);
+            openCVPointList[3] = new org.opencv.core.Point(leftX,bottomY);
+
+            Log.d(TAG,"highlighting image");
+
+            for (int j = 0; j < 4; j++) {
+                Log.d(TAG,"Drawing line between: " + openCVPointList[j].x + " , " + openCVPointList[j].y + " and " +
+                openCVPointList[(j+1)%4].x + "," + openCVPointList[(j+1)%4].y);
                 Imgproc.line(resultImage,openCVPointList[j],openCVPointList[(j+1)%4], new Scalar(255,0,0), 3);
             }
 

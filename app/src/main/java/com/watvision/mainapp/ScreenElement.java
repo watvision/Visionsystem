@@ -40,6 +40,12 @@ public class ScreenElement {
         return id;
     }
 
+    public double getX_base() { return x_base; }
+    public double getX_Width() { return x_width; }
+    public double getY_base() { return y_base; }
+    public double getY_length() { return y_length; }
+
+
 
 
 
