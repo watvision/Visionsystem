@@ -25,11 +25,15 @@ import com.google.api.services.vision.v1.model.TextAnnotation;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.opencv.android.*;
+import org.opencv.core.Core;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
@@ -72,6 +76,47 @@ public class ScreenAnalyzer {
 
     private MatOfKeyPoint screenKeyPointsMat;
 
+    // Previously identified menu info
+    MenuInfo prevMenuInfo;
+
+    private class MenuInfo {
+
+        private boolean redPower;
+        private boolean greenPower;
+        private boolean bluePower;
+
+        public MenuInfo() {
+            redPower = false;
+            greenPower = false;
+            bluePower = false;
+        }
+
+        public MenuInfo(boolean inputRed, boolean inputGreen, boolean inputBlue) {
+            redPower = inputRed;
+            greenPower = inputGreen;
+            bluePower = inputBlue;
+        }
+
+        public boolean isEqualTo(MenuInfo inputMenu) {
+
+            return ((inputMenu.redPower == this.redPower)
+            && (inputMenu.greenPower == this.greenPower)
+            && (inputMenu.bluePower == this.bluePower));
+        }
+
+        public void logDifferences(MenuInfo inputMenu) {
+            if (inputMenu.redPower != this.redPower) {
+                Log.d(TAG,"Input red: " + inputMenu.redPower + " This red: " + this.redPower);
+            }
+            if (inputMenu.greenPower != this.greenPower) {
+                Log.d(TAG,"Input green: " + inputMenu.greenPower + " This green: " + this.greenPower);
+            }
+            if (inputMenu.bluePower != this.bluePower) {
+                Log.d(TAG,"Input blue: " + inputMenu.bluePower + " This red: " + this.bluePower);
+            }
+        }
+    }
+
 
 
     public ScreenAnalyzer(Context inAppContext) {
@@ -99,6 +144,8 @@ public class ScreenAnalyzer {
 
         screenWidth_OCR = 0;
         screenHeight_OCR = 0;
+
+        prevMenuInfo = null;
     }
 
     public void analyzePhoto(Mat inputMat) {
@@ -271,10 +318,28 @@ public class ScreenAnalyzer {
 
     }
 
+    boolean isSameScreenColour(Mat inputScreen) {
+
+        if (prevMenuInfo == null) {
+            return false;
+        }
+
+        MenuInfo identifiedScreenInfo = getMenuInfoFromScreen(inputScreen, false);
+
+        if (identifiedScreenInfo.isEqualTo(prevMenuInfo)) {
+            return true;
+        } else {
+            identifiedScreenInfo.logDifferences(prevMenuInfo);
+            return false;
+        }
+    }
+
     public void clearKnownScreen() {
         prevIdentifiedScreen = null;
 
         screenKeyPoints = null;
+
+        prevMenuInfo = null;
 
         screenWidth = 0;
         screenHeight = 0;
@@ -299,6 +364,68 @@ public class ScreenAnalyzer {
         Imgproc.cvtColor(prevIdentifiedScreen,inputRGB,Imgproc.COLOR_RGBA2RGB);
 
         Features2d.drawKeypoints(inputRGB,screenKeyPointsMat,prevIdentifiedScreen);
+    }
+
+    public void setKnownScreenColour(Mat inputScreen) {
+        prevMenuInfo = getMenuInfoFromScreen(inputScreen, true);
+    }
+
+    private MenuInfo getMenuInfoFromScreen(Mat inputScreen, boolean log) {
+        Mat RGBImage = new Mat();
+        Mat blurImage = new Mat();
+
+        Imgproc.cvtColor(inputScreen,RGBImage,Imgproc.COLOR_RGBA2RGB);
+
+        Imgproc.blur(RGBImage,blurImage,new Size(5,5));
+
+        Boolean bluePower = false;
+        Boolean redPower = false;
+        Boolean greenPower = false;
+
+        double compareMult = 1.25;
+        double minPixelValue = 100;
+
+        for (int i = 0; i < blurImage.width(); i+=2) {
+            for (int j = 0; j < blurImage.height(); j+=2) {
+                double[] pixelValues = blurImage.get(j,i);
+
+                if ((pixelValues[0] > minPixelValue) && (pixelValues[1] > minPixelValue) && (pixelValues[2] > minPixelValue)) {
+                    if (((pixelValues[0] > pixelValues[1]*compareMult) && (pixelValues[0] > pixelValues[2]*compareMult)) && !redPower) {
+                        if (log) {
+                            Log.d(TAG,"Found redPower at x: " + i + " y: " + j);
+                            Log.d(TAG,"Pixel value: R: " + pixelValues[0] + " G: " + pixelValues[1] + " B: " + pixelValues[2]);
+                        }
+                        redPower = true;
+                    }
+                    if (((pixelValues[1] > pixelValues[0]*compareMult) && (pixelValues[1] > pixelValues[2]*compareMult)) && !greenPower) {
+                        if (log) {
+                            Log.d(TAG,"Found greenPower at x: " + i + " y: " + j);
+                            Log.d(TAG,"Pixel value: R: " + pixelValues[0] + " G: " + pixelValues[1] + " B: " + pixelValues[2]);
+                        }
+                        greenPower = true;
+                    }
+                    if (((pixelValues[2] > pixelValues[0]*compareMult) && (pixelValues[2] > pixelValues[1]*compareMult)) && !bluePower) {
+                        if (log) {
+                            Log.d(TAG,"Found bluePower at x: " + i + " y: " + j);
+                            Log.d(TAG,"Pixel value: R: " + pixelValues[0] + " G: " + pixelValues[1] + " B: " + pixelValues[2]);
+                        }
+                        bluePower = true;
+                    }
+                }
+            }
+        }
+
+        MenuInfo returnInfo = new MenuInfo(redPower,greenPower,bluePower);
+        return returnInfo;
+    }
+
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        long factor = (long) Math.pow(10, places);
+        value = value * factor;
+        long tmp = Math.round(value);
+        return (double) tmp / factor;
     }
 
     private Boolean pointIsNearPointList(KeyPoint a, double tolerance) {

@@ -70,7 +70,9 @@ public class WatVision {
         // Lower resolution state used to get the differences picture
         OBTAINING_SCREEN_FEATURES,
         // Waiting State, not doing any outputs during this state
-        WAITING_TO_CAPTURE_SCREEN
+        WAITING_TO_CAPTURE_SCREEN,
+        // Paused state before obtaining screen features to adjust aperture
+        PAUSE_BEFORE_SCREEN_FEATURES
     };
 
     // Constructor
@@ -154,15 +156,16 @@ public class WatVision {
                 currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
                         tracker.resultImage.height());
                 screenAnalyzer.highlightTextOnResultImage(currentScreen.getAllElements());
-                switchStates(watVisionState.OBTAINING_SCREEN_FEATURES);
+                switchStates(watVisionState.PAUSE_BEFORE_SCREEN_FEATURES);
             // What happens when we need to obtain the screen for feature purposes,
             // This is separate since the screen resolution is different!
             } else if (currentState == watVisionState.OBTAINING_SCREEN_FEATURES) {
                 screenAnalyzer.setKnownScreen(tracker.resultImage);
+                screenAnalyzer.setKnownScreenColour(tracker.resultImage);
                 switchStates(watVisionState.TRACKING_MENU);
             // What happens if we are just doing normal tracking
             } else if (currentState == watVisionState.TRACKING_MENU) {
-                Boolean isSameMenu = screenAnalyzer.isSameScreen(tracker.resultImage);
+                Boolean isSameMenu = screenAnalyzer.isSameScreenColour(tracker.resultImage);
 
                 // If the screen changed or we have a request to change then we should capture the new screen
                 if (!isSameMenu || newScreenRequestFlag) {
@@ -189,7 +192,8 @@ public class WatVision {
                         lastReadText = "No Element Present";
                     }
                 }
-            } else if (currentState == watVisionState.WAITING_TO_CAPTURE_SCREEN) {
+            } else if (currentState == watVisionState.WAITING_TO_CAPTURE_SCREEN
+                    || currentState == watVisionState.PAUSE_BEFORE_SCREEN_FEATURES) {
                 // Do nothing during the waiting state
             }
 
@@ -300,19 +304,6 @@ public class WatVision {
                 break;
             case OBTAINING_SCREEN_FEATURES:
 
-                // Get a handler that can be used to post to the main thread
-                mainHandler = new Handler(mainContext.getMainLooper());
-
-                myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        camera.disableView();
-                        camera.setMaxFrameSize(lowResMaxWidth,lowResMaxHeight);
-                        camera.enableView();
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
-                tracker.clearMenuKnowledge();
                 break;
             case WAITING_TO_CAPTURE_SCREEN:
 
@@ -343,6 +334,28 @@ public class WatVision {
                     }
                 }, secondsToCountdown*1000 + initialReadDelay + numberReadDelay);
 
+                break;
+            case PAUSE_BEFORE_SCREEN_FEATURES:
+                // Get a handler that can be used to post to the main thread
+                mainHandler = new Handler(mainContext.getMainLooper());
+
+                myRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        camera.disableView();
+                        camera.setMaxFrameSize(lowResMaxWidth,lowResMaxHeight);
+                        camera.enableView();
+                    } // This is your code
+                };
+                mainHandler.post(myRunnable);
+                tracker.clearMenuKnowledge();
+
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        switchStates(watVisionState.OBTAINING_SCREEN_FEATURES);
+                    }
+                }, 2000);
                 break;
             default:
                 break;
