@@ -52,8 +52,8 @@ public class WatVision {
 
     public static int lowResMaxWidth = 800;
     public static int lowResMaxHeight = 800;
-    public static int highResMaxWidth = 1500;
-    public static int highResMaxHeight = 1500;
+    public static int highResMaxWidth = 2000;
+    public static int highResMaxHeight = 2000;
 
     // Bluetooth services
     WatBlueToothService blueToothService;
@@ -152,11 +152,15 @@ public class WatVision {
 
             // What happens when we need to obtain the screen for OCR purposes
             if (currentState == watVisionState.OBTAINING_OCR_SCREEN) {
-                screenAnalyzer.analyzePhoto(tracker.resultImage);
-                currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
-                        tracker.resultImage.height());
-                screenAnalyzer.highlightTextOnResultImage(currentScreen.getAllElements());
-                switchStates(watVisionState.PAUSE_BEFORE_SCREEN_FEATURES);
+                if (inputtedFrame.width() >= lowResMaxWidth || inputtedFrame.height() >= lowResMaxHeight) {
+                    screenAnalyzer.analyzePhoto(tracker.resultImage);
+                    currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
+                            tracker.resultImage.height());
+                    screenAnalyzer.highlightTextOnResultImage(currentScreen.getAllElements());
+                    switchStates(watVisionState.PAUSE_BEFORE_SCREEN_FEATURES);
+                } else {
+                    Log.d(TAG,"Incoming frame is wrong size!");
+                }
             // What happens when we need to obtain the screen for feature purposes,
             // This is separate since the screen resolution is different!
             } else if (currentState == watVisionState.OBTAINING_SCREEN_FEATURES) {
@@ -288,18 +292,6 @@ public class WatVision {
 
                 readText("Processing");
 
-                // Get a handler that can be used to post to the main thread
-                mainHandler = new Handler(mainContext.getMainLooper());
-
-                myRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        camera.disableView();
-                        camera.setMaxFrameSize(highResMaxWidth,highResMaxHeight);
-                        camera.enableView();
-                    } // This is your code
-                };
-                mainHandler.post(myRunnable);
                 tracker.clearMenuKnowledge();
                 break;
             case OBTAINING_SCREEN_FEATURES:
@@ -333,6 +325,19 @@ public class WatVision {
                         switchStates(watVisionState.OBTAINING_OCR_SCREEN);
                     }
                 }, secondsToCountdown*1000 + initialReadDelay + numberReadDelay);
+
+                // Get a handler that can be used to post to the main thread
+                mainHandler = new Handler(mainContext.getMainLooper());
+
+                myRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        camera.disableView();
+                        camera.setMaxFrameSize(highResMaxWidth,highResMaxHeight);
+                        camera.enableView();
+                    } // This is your code
+                };
+                mainHandler.post(myRunnable);
 
                 break;
             case PAUSE_BEFORE_SCREEN_FEATURES:
