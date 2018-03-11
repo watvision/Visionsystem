@@ -382,37 +382,44 @@ public class ScreenAnalyzer {
         Boolean redPower = false;
         Boolean greenPower = false;
 
+        int numBluePower = 0;
+        int numRedPower = 0;
+        int numGreenPower = 0;
+
         double compareMult = 1.25;
         double minPixelValue = 100;
+        int pixelTolerance = 20;
 
         for (int i = 0; i < blurImage.width(); i+=2) {
             for (int j = 0; j < blurImage.height(); j+=2) {
                 double[] pixelValues = blurImage.get(j,i);
 
                 if ((pixelValues[0] > minPixelValue) && (pixelValues[1] > minPixelValue) && (pixelValues[2] > minPixelValue)) {
-                    if (((pixelValues[0] > pixelValues[1]*compareMult) && (pixelValues[0] > pixelValues[2]*compareMult)) && !redPower) {
-                        if (log) {
-                            Log.d(TAG,"Found redPower at x: " + i + " y: " + j);
-                            Log.d(TAG,"Pixel value: R: " + pixelValues[0] + " G: " + pixelValues[1] + " B: " + pixelValues[2]);
-                        }
-                        redPower = true;
+                    if (((pixelValues[0] > pixelValues[1]*compareMult) && (pixelValues[0] > pixelValues[2]*compareMult))) {
+                        numRedPower++;
                     }
-                    if (((pixelValues[1] > pixelValues[0]*compareMult) && (pixelValues[1] > pixelValues[2]*compareMult)) && !greenPower) {
-                        if (log) {
-                            Log.d(TAG,"Found greenPower at x: " + i + " y: " + j);
-                            Log.d(TAG,"Pixel value: R: " + pixelValues[0] + " G: " + pixelValues[1] + " B: " + pixelValues[2]);
-                        }
-                        greenPower = true;
+                    if (((pixelValues[1] > pixelValues[0]*compareMult) && (pixelValues[1] > pixelValues[2]*compareMult))) {
+                        numGreenPower++;
                     }
-                    if (((pixelValues[2] > pixelValues[0]*compareMult) && (pixelValues[2] > pixelValues[1]*compareMult)) && !bluePower) {
-                        if (log) {
-                            Log.d(TAG,"Found bluePower at x: " + i + " y: " + j);
-                            Log.d(TAG,"Pixel value: R: " + pixelValues[0] + " G: " + pixelValues[1] + " B: " + pixelValues[2]);
-                        }
-                        bluePower = true;
+                    if (((pixelValues[2] > pixelValues[0]*compareMult) && (pixelValues[2] > pixelValues[1]*compareMult))) {
+                        numBluePower++;
                     }
                 }
             }
+        }
+
+        if (log) {
+            Log.d(TAG,"Screen red power: " + numRedPower + " green power: " + numGreenPower + " blue power: " + numBluePower);
+        }
+
+        if (numRedPower > pixelTolerance) {
+            redPower = true;
+        }
+        if (numGreenPower > pixelTolerance) {
+            greenPower = true;
+        }
+        if (numBluePower > pixelTolerance) {
+            bluePower = true;
         }
 
         MenuInfo returnInfo = new MenuInfo(redPower,greenPower,bluePower);
