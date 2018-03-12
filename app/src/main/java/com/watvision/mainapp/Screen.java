@@ -44,12 +44,37 @@ public class Screen {
         double width = boundingRect.width() * 1.0 / screenWidth;
         double height = boundingRect.height() * 1.0 / screenHeight;
 
+        double w_pad = calculate_padding(width);
+        double h_pad = calculate_padding(height);
+
+        xpos -= w_pad;
+        ypos -= h_pad;
+        width += 2*w_pad;
+        height +=2*h_pad;
+        if(width > 1) width = 1;
+        if(height> 1) height = 1;
+        if(xpos < 0) xpos = 0;
+        if(ypos < 0) ypos = 0;
+
+        Log.d(TAG,"Increasing width and height");
+
         Log.w(TAG,"New Screen Element: " + xpos + " , " + ypos + " , " +
                 width + " , " + height + " , " + textBlock.getValue() + " id: " + inId);
 
         ScreenElement returnElement = new ScreenElement(xpos, ypos, width, height,textBlock.getValue(), inId);
 
         return returnElement;
+    }
+
+    private double calculate_padding(double element_size)
+    {
+        Log.d(TAG,"Calculating padding");
+        double m = -1;
+        double b = 0.6; // 60%
+        double percent_pad = element_size * m + b;
+        if(percent_pad < 0) percent_pad = 0;
+        double pad = percent_pad * element_size;
+        return pad;
     }
 
     public ScreenElement GetElementAtPoint(double x, double y) {

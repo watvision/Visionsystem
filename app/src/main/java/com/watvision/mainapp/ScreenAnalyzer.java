@@ -25,11 +25,15 @@ import com.google.api.services.vision.v1.model.TextAnnotation;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.opencv.android.*;
+import org.opencv.core.Core;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
@@ -63,10 +67,55 @@ public class ScreenAnalyzer {
     private int screenWidth;
     private int screenHeight;
 
+    // TODO: Fix this hack!!
+    private int screenWidth_OCR;
+    private int screenHeight_OCR;
+
     // Identified screen keyPoints
     private List<KeyPoint> screenKeyPoints;
 
     private MatOfKeyPoint screenKeyPointsMat;
+
+    // Previously identified menu info
+    MenuInfo prevMenuInfo;
+
+    private class MenuInfo {
+
+        private boolean redPower;
+        private boolean greenPower;
+        private boolean bluePower;
+
+        public MenuInfo() {
+            redPower = false;
+            greenPower = false;
+            bluePower = false;
+        }
+
+        public MenuInfo(boolean inputRed, boolean inputGreen, boolean inputBlue) {
+            redPower = inputRed;
+            greenPower = inputGreen;
+            bluePower = inputBlue;
+        }
+
+        public boolean isEqualTo(MenuInfo inputMenu) {
+
+            return ((inputMenu.redPower == this.redPower)
+            && (inputMenu.greenPower == this.greenPower)
+            && (inputMenu.bluePower == this.bluePower));
+        }
+
+        public void logDifferences(MenuInfo inputMenu) {
+            if (inputMenu.redPower != this.redPower) {
+                Log.d(TAG,"Input red: " + inputMenu.redPower + " This red: " + this.redPower);
+            }
+            if (inputMenu.greenPower != this.greenPower) {
+                Log.d(TAG,"Input green: " + inputMenu.greenPower + " This green: " + this.greenPower);
+            }
+            if (inputMenu.bluePower != this.bluePower) {
+                Log.d(TAG,"Input blue: " + inputMenu.bluePower + " This red: " + this.bluePower);
+            }
+        }
+    }
 
 
 
@@ -92,6 +141,11 @@ public class ScreenAnalyzer {
         prevIdentifiedScreen = null;
         screenWidth = 0;
         screenHeight = 0;
+
+        screenWidth_OCR = 0;
+        screenHeight_OCR = 0;
+
+        prevMenuInfo = null;
     }
 
     public void analyzePhoto(Mat inputMat) {
@@ -101,7 +155,6 @@ public class ScreenAnalyzer {
         analyzePhoto(bm);
 
         resultImage = inputMat.clone();
-        highlightTextOnResultImage();
     }
 
     public void analyzePhoto(Bitmap inputBitmap) {
@@ -142,6 +195,9 @@ public class ScreenAnalyzer {
 
             Log.w(TAG,"Detected " + textBlocks.size() + " text objects");
 
+            screenWidth_OCR = inputBitmap.getWidth();
+            screenHeight_OCR = inputBitmap.getHeight();
+
             for (int i = 0; i < textBlocks.size(); i++) {
                 TextBlock textBlock = textBlocks.get(textBlocks.keyAt(i));
 
@@ -169,6 +225,34 @@ public class ScreenAnalyzer {
             }
 
             for (int j = 0; j < 4; j++) {
+                Imgproc.line(resultImage,openCVPointList[j],openCVPointList[(j+1)%4], new Scalar(255,0,0), 3);
+            }
+
+        }
+    }
+
+    public void highlightTextOnResultImage(ArrayList<ScreenElement> elements) {
+
+        for (int i = 0; i < elements.size(); i++) {
+            ScreenElement visitor = elements.get(i);
+
+            org.opencv.core.Point[] openCVPointList = new org.opencv.core.Point[4];
+
+            double leftX = visitor.getX_base() * screenWidth_OCR;
+            double topY = visitor.getY_base() * screenHeight_OCR;
+            double rightX = (visitor.getX_base() + visitor.getX_Width())* screenWidth_OCR;
+            double bottomY = (visitor.getY_base() + visitor.getY_length()) * screenHeight_OCR;
+
+            openCVPointList[0] = new org.opencv.core.Point(leftX,topY);
+            openCVPointList[1] = new org.opencv.core.Point(rightX,topY);
+            openCVPointList[2] = new org.opencv.core.Point(rightX,bottomY);
+            openCVPointList[3] = new org.opencv.core.Point(leftX,bottomY);
+
+            Log.d(TAG,"highlighting image");
+
+            for (int j = 0; j < 4; j++) {
+                Log.d(TAG,"Drawing line between: " + openCVPointList[j].x + " , " + openCVPointList[j].y + " and " +
+                openCVPointList[(j+1)%4].x + "," + openCVPointList[(j+1)%4].y);
                 Imgproc.line(resultImage,openCVPointList[j],openCVPointList[(j+1)%4], new Scalar(255,0,0), 3);
             }
 
@@ -234,10 +318,28 @@ public class ScreenAnalyzer {
 
     }
 
+    boolean isSameScreenColour(Mat inputScreen) {
+
+        if (prevMenuInfo == null) {
+            return false;
+        }
+
+        MenuInfo identifiedScreenInfo = getMenuInfoFromScreen(inputScreen, false);
+
+        if (identifiedScreenInfo.isEqualTo(prevMenuInfo)) {
+            return true;
+        } else {
+            identifiedScreenInfo.logDifferences(prevMenuInfo);
+            return false;
+        }
+    }
+
     public void clearKnownScreen() {
         prevIdentifiedScreen = null;
 
         screenKeyPoints = null;
+
+        prevMenuInfo = null;
 
         screenWidth = 0;
         screenHeight = 0;
@@ -262,6 +364,75 @@ public class ScreenAnalyzer {
         Imgproc.cvtColor(prevIdentifiedScreen,inputRGB,Imgproc.COLOR_RGBA2RGB);
 
         Features2d.drawKeypoints(inputRGB,screenKeyPointsMat,prevIdentifiedScreen);
+    }
+
+    public void setKnownScreenColour(Mat inputScreen) {
+        prevMenuInfo = getMenuInfoFromScreen(inputScreen, true);
+    }
+
+    private MenuInfo getMenuInfoFromScreen(Mat inputScreen, boolean log) {
+        Mat RGBImage = new Mat();
+        Mat blurImage = new Mat();
+
+        Imgproc.cvtColor(inputScreen,RGBImage,Imgproc.COLOR_RGBA2RGB);
+
+        Imgproc.blur(RGBImage,blurImage,new Size(5,5));
+
+        Boolean bluePower = false;
+        Boolean redPower = false;
+        Boolean greenPower = false;
+
+        int numBluePower = 0;
+        int numRedPower = 0;
+        int numGreenPower = 0;
+
+        double compareMult = 1.25;
+        double minPixelValue = 100;
+        int pixelTolerance = 20;
+
+        for (int i = 0; i < blurImage.width(); i+=2) {
+            for (int j = 0; j < blurImage.height(); j+=2) {
+                double[] pixelValues = blurImage.get(j,i);
+
+                if ((pixelValues[0] > minPixelValue) && (pixelValues[1] > minPixelValue) && (pixelValues[2] > minPixelValue)) {
+                    if (((pixelValues[0] > pixelValues[1]*compareMult) && (pixelValues[0] > pixelValues[2]*compareMult))) {
+                        numRedPower++;
+                    }
+                    if (((pixelValues[1] > pixelValues[0]*compareMult) && (pixelValues[1] > pixelValues[2]*compareMult))) {
+                        numGreenPower++;
+                    }
+                    if (((pixelValues[2] > pixelValues[0]*compareMult) && (pixelValues[2] > pixelValues[1]*compareMult))) {
+                        numBluePower++;
+                    }
+                }
+            }
+        }
+
+        if (log) {
+            Log.d(TAG,"Screen red power: " + numRedPower + " green power: " + numGreenPower + " blue power: " + numBluePower);
+        }
+
+        if (numRedPower > pixelTolerance) {
+            redPower = true;
+        }
+        if (numGreenPower > pixelTolerance) {
+            greenPower = true;
+        }
+        if (numBluePower > pixelTolerance) {
+            bluePower = true;
+        }
+
+        MenuInfo returnInfo = new MenuInfo(redPower,greenPower,bluePower);
+        return returnInfo;
+    }
+
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        long factor = (long) Math.pow(10, places);
+        value = value * factor;
+        long tmp = Math.round(value);
+        return (double) tmp / factor;
     }
 
     private Boolean pointIsNearPointList(KeyPoint a, double tolerance) {

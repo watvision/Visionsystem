@@ -1,34 +1,20 @@
 package com.watvision.mainapp;
 
 
-import android.Manifest;
-import android.app.AlertDialog;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothSocket;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.AsyncTask;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
-import android.view.View;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,6 +22,10 @@ public class WatBlueToothService {
 
     private static final String TAG = "WatBlueToothService";
     private String MY_UUID_STRING = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    private String BUZZ_UUID_STRING = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    private String BUTTON_UUID_STRING = "ceb5483e-36e1-4688-b7f5-ea07361b26a8";
+    private UUID BUZZ_UUID;
+    private UUID BUTTON_UUID;
     private boolean connected = false;
 
     public enum bluetoothStates {
@@ -53,25 +43,34 @@ public class WatBlueToothService {
     private Handler mHandler = new Handler();
     private static final long SCAN_PERIOD = 5000;
 
+    private byte BUTTON_NEW_SCREEN_CODE = '1';
+    private byte BUTTON_RESET_SIGNAL_CODE = '0';
+
     Context appContext;
 
     BluetoothDevice wearableDevice;
 
     BluetoothGattCharacteristic buzzCharacteristic;
+    BluetoothGattCharacteristic buttonCharacteristic;
 
     BluetoothGattCharacteristic vibrateCharac;
 
     Handler mainLoopHandler;
 
+    WatVision parentVisionSystem;
+
     private final static String ACTION_DATA_AVAILABLE =
             "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
 
-    public WatBlueToothService(BluetoothLeScanner inScanner, Context inContext, Handler inHandler) {
+    public WatBlueToothService(BluetoothLeScanner inScanner, Context inContext, Handler inHandler, WatVision inParent) {
         btScanner = inScanner;
         appContext = inContext;
         mainLoopHandler = inHandler;
         wearableDevice = null;
         buzzCharacteristic = null;
+        BUZZ_UUID = UUID.fromString(BUZZ_UUID_STRING);
+        BUTTON_UUID = UUID.fromString(BUTTON_UUID_STRING);
+        parentVisionSystem = inParent;
     }
 
     // Device scan callback.
@@ -138,7 +137,26 @@ public class WatBlueToothService {
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+                // Check if it is the right characteristic
+
+                byte[] returnValue = characteristic.getValue();
+
+                Log.d(TAG,"Reading returned characteristic value: ");
+                for (int i = 0; i < returnValue.length; i++) {
+                    char specificValue = (char)returnValue[i];
+                    Log.d(TAG,"Value : " + specificValue);
+
+                    if (specificValue == BUTTON_NEW_SCREEN_CODE) {
+                        Log.d(TAG,"Read Button Pressed");
+                        parentVisionSystem.requestNewScreen();
+                    }
+                }
+
+                // Reset processed signal
+                byte[] sendValue = new byte[1];
+                sendValue[0] = BUTTON_RESET_SIGNAL_CODE;
+                characteristic.setValue(sendValue);
+                bluetoothGatt.writeCharacteristic(characteristic);
             }
         }
     };
@@ -162,19 +180,29 @@ public class WatBlueToothService {
             Log.e(TAG, "service not found!");
             return;
         }
-        BluetoothGattCharacteristic charac = Service
-                .getCharacteristics().get(0);
-        if (charac == null) {
-            Log.e(TAG, "char not found!");
-            return;
+
+        List<BluetoothGattCharacteristic> characList = Service.getCharacteristics();
+
+        for (int i = 0; i < characList.size(); i++) {
+            if (characList.get(i).getUuid().equals(BUZZ_UUID)) {
+                buzzCharacteristic = characList.get(i);
+            } else if (characList.get(i).getUuid().equals(BUTTON_UUID)) {
+                buttonCharacteristic = characList.get(i);
+            }
+            Log.d(TAG,"Found characteristic: " + characList.get(i).getUuid().toString());
         }
 
-        buzzCharacteristic = charac;
-        byte[] value = new byte[1];
-        value[0] = (byte) 'A';
-        buzzCharacteristic.setValue(value);
+        if (buzzCharacteristic != null) {
+            byte[] value = new byte[1];
+            value[0] = (byte) 'A';
+            buzzCharacteristic.setValue(value);
+        } else {
+            Log.d(TAG,"Buzz characteristic not found");
+        }
 
-        vibrateCharac = charac;
+        if (buttonCharacteristic == null) {
+            Log.d(TAG,"Button characteristic not found");
+        }
     }
 
 
@@ -272,6 +300,20 @@ public class WatBlueToothService {
         msg.arg1 = bluetoothStates.DISCONNECTED.ordinal();
         msg.arg2 = 0;
         mainLoopHandler.sendMessage(msg);
+    }
+
+    public void readButton() {
+        if (buttonCharacteristic != null) {
+            boolean status = bluetoothGatt.readCharacteristic(buttonCharacteristic);
+
+            if (status) {
+                Log.d(TAG,"Read Successful!");
+            } else {
+                Log.d(TAG,"Read Failure!");
+            }
+        } else {
+            Log.d(TAG,"Read characteristic is null");
+        }
     }
 
     public void destroy() {

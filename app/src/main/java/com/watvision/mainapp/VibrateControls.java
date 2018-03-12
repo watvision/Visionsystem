@@ -75,10 +75,10 @@ public class VibrateControls {
         proxField = new int[screenWidth/10][screenHeight/10];
         ArrayList<FieldElement> borderExpansionList = new ArrayList<>();
         for(ScreenElement e: elements) {
-            int x1 = (int)(e.getX1()*screenWidth/10);
-            int y1 = (int)(e.getY1()*screenHeight/10);
-            int x2 = (int)(e.getX2()*screenWidth/10);
-            int y2 = (int)(e.getY2()*screenHeight/10);
+            int x1 = (int)(e.getX_base()*screenWidth/10);
+            int y1 = (int)(e.getY_base()*screenHeight/10);
+            int x2 = (int)((e.getX_base() + e.getX_Width())*screenWidth/10);
+            int y2 = (int)((e.getY_base() + e.getY_length())*screenHeight/10);
             for(int i = x1; i < x2; i++) {
                 for(int j = y1; j < y2; j++) {
                     proxField[i][j] = 7;
