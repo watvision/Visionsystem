@@ -16,31 +16,17 @@ import com.google.api.client.extensions.android.json.AndroidJsonFactory;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.services.vision.v1.Vision;
 import com.google.api.services.vision.v1.VisionRequestInitializer;
-import com.google.api.services.vision.v1.model.AnnotateImageRequest;
-import com.google.api.services.vision.v1.model.BatchAnnotateImagesRequest;
-import com.google.api.services.vision.v1.model.BatchAnnotateImagesResponse;
-import com.google.api.services.vision.v1.model.Feature;
-import com.google.api.services.vision.v1.model.Image;
-import com.google.api.services.vision.v1.model.TextAnnotation;
 
-import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.opencv.android.*;
-import org.opencv.core.Core;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfFloat;
-import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.Features2d;
 import org.opencv.imgproc.Imgproc;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 // Screen Analyzer - Created 2018-02-05
@@ -97,14 +83,42 @@ public class ScreenAnalyzer {
             bluePower = inputBlue;
         }
 
-        public boolean isEqualTo(MenuInfo inputMenu) {
+        // Input menu is always the previous menu
+        public Boolean compareColours(MenuInfo inputMenu) {
 
-            return ((inputMenu.redPower == this.redPower)
-            && (inputMenu.greenPower == this.greenPower)
-            && (inputMenu.bluePower == this.bluePower));
+            boolean redMatch = inputMenu.redPower == this.redPower;
+            boolean greenMatch = inputMenu.greenPower == this.greenPower;
+            boolean blueMatch = inputMenu.bluePower == this.bluePower;
+
+            ArrayList<Boolean> trueCheckList = new ArrayList<>();
+
+            // Only check if there's a difference on states that were true in the previous menu
+            // i.e: only checking if a colour disappears not if one gets added
+            if (inputMenu.redPower) {
+                trueCheckList.add(redMatch);
+            }
+            if (inputMenu.greenPower) {
+                trueCheckList.add(greenMatch);
+            }
+            if (inputMenu.bluePower) {
+                trueCheckList.add(blueMatch);
+            }
+
+            if (trueCheckList.size() == 0) {
+                return false;
+            } else {
+                Boolean returnValue = true;
+                for (int i = 0; i < trueCheckList.size(); i++) {
+                    if (trueCheckList.get(i) == false) {
+                        returnValue = false;
+                    }
+                }
+                return returnValue;
+            }
         }
 
         public void logDifferences(MenuInfo inputMenu) {
+            Log.d(TAG,"Logging differences");
             if (inputMenu.redPower != this.redPower) {
                 Log.d(TAG,"Input red: " + inputMenu.redPower + " This red: " + this.redPower);
             }
@@ -248,11 +262,7 @@ public class ScreenAnalyzer {
             openCVPointList[2] = new org.opencv.core.Point(rightX,bottomY);
             openCVPointList[3] = new org.opencv.core.Point(leftX,bottomY);
 
-            Log.d(TAG,"highlighting image");
-
             for (int j = 0; j < 4; j++) {
-                Log.d(TAG,"Drawing line between: " + openCVPointList[j].x + " , " + openCVPointList[j].y + " and " +
-                openCVPointList[(j+1)%4].x + "," + openCVPointList[(j+1)%4].y);
                 Imgproc.line(resultImage,openCVPointList[j],openCVPointList[(j+1)%4], new Scalar(255,0,0), 3);
             }
 
@@ -326,10 +336,14 @@ public class ScreenAnalyzer {
 
         MenuInfo identifiedScreenInfo = getMenuInfoFromScreen(inputScreen, false);
 
-        if (identifiedScreenInfo.isEqualTo(prevMenuInfo)) {
+        Boolean isSameScreen = identifiedScreenInfo.compareColours(prevMenuInfo);
+
+        if (isSameScreen) {
             return true;
         } else {
+            Log.d(TAG,"New screen detected");
             identifiedScreenInfo.logDifferences(prevMenuInfo);
+            getMenuInfoFromScreen(inputScreen, true);
             return false;
         }
     }
@@ -368,6 +382,24 @@ public class ScreenAnalyzer {
 
     public void setKnownScreenColour(Mat inputScreen) {
         prevMenuInfo = getMenuInfoFromScreen(inputScreen, true);
+        highlightColourInfo(prevMenuInfo);
+    }
+
+    private void highlightColourInfo(MenuInfo inputInfo) {
+
+        double point1 = prevIdentifiedScreen.width()*0.33;
+        double point2 = prevIdentifiedScreen.width()*0.66;
+
+        if (inputInfo.redPower) {
+            Imgproc.line(prevIdentifiedScreen,new org.opencv.core.Point(0,0),new org.opencv.core.Point(point1,0),new Scalar(255,0,0),3);
+        }
+        if (inputInfo.greenPower) {
+            Imgproc.line(prevIdentifiedScreen,new org.opencv.core.Point(point1,0),new org.opencv.core.Point(point2,0),new Scalar(0,255,0),3);
+        }
+        if (inputInfo.bluePower) {
+            Imgproc.line(prevIdentifiedScreen,new org.opencv.core.Point(point2,0),new org.opencv.core.Point(prevIdentifiedScreen.width(),0),new Scalar(0,0,255),3);
+        }
+
     }
 
     private MenuInfo getMenuInfoFromScreen(Mat inputScreen, boolean log) {
