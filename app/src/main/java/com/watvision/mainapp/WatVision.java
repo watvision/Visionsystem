@@ -52,8 +52,8 @@ public class WatVision {
 
     public static int lowResMaxWidth = 800;
     public static int lowResMaxHeight = 800;
-    public static int highResMaxWidth = 2000;
-    public static int highResMaxHeight = 2000;
+    public static int highResMaxWidth = 1500;
+    public static int highResMaxHeight = 1500;
 
     // Bluetooth services
     WatBlueToothService blueToothService;
