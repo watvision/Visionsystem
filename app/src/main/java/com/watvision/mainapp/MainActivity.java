@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -133,6 +134,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         if (btAdapter != null && !btAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+            while(btManager.getAdapter() == null);
+            btAdapter = btManager.getAdapter();
+            while(btAdapter.getBluetoothLeScanner() == null);
+            btScanner = btAdapter.getBluetoothLeScanner();
+            SystemClock.sleep(500);
         }
 
         // The bluetooth message handler
