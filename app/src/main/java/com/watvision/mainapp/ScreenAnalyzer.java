@@ -112,8 +112,15 @@ public class ScreenAnalyzer {
                 Log.d(TAG,"Input green: " + inputMenu.greenPower + " This green: " + this.greenPower);
             }
             if (inputMenu.bluePower != this.bluePower) {
-                Log.d(TAG,"Input blue: " + inputMenu.bluePower + " This red: " + this.bluePower);
+                Log.d(TAG,"Input blue: " + inputMenu.bluePower + " This blue: " + this.bluePower);
             }
+        }
+
+        public boolean isChangedColour(MenuInfo inputMenu) {
+
+            return ((!inputMenu.redPower && this.redPower) ||
+                    (!inputMenu.greenPower && this.greenPower) ||
+                    (!inputMenu.bluePower && this.bluePower));
         }
     }
 
@@ -326,7 +333,7 @@ public class ScreenAnalyzer {
 
         MenuInfo identifiedScreenInfo = getMenuInfoFromScreen(inputScreen, false);
 
-        if (identifiedScreenInfo.isEqualTo(prevMenuInfo)) {
+        if (!identifiedScreenInfo.isChangedColour(prevMenuInfo)) {
             return true;
         } else {
             identifiedScreenInfo.logDifferences(prevMenuInfo);
