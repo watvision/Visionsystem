@@ -152,15 +152,11 @@ public class WatVision {
 
             // What happens when we need to obtain the screen for OCR purposes
             if (currentState == watVisionState.OBTAINING_OCR_SCREEN) {
-                if (inputtedFrame.width() >= lowResMaxWidth || inputtedFrame.height() >= lowResMaxHeight) {
-                    screenAnalyzer.analyzePhoto(tracker.resultImage);
-                    currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
-                            tracker.resultImage.height());
-                    screenAnalyzer.highlightTextOnResultImage(currentScreen.getAllElements());
-                    switchStates(watVisionState.PAUSE_BEFORE_SCREEN_FEATURES);
-                } else {
-                    Log.d(TAG,"Incoming frame is wrong size!");
-                }
+                screenAnalyzer.analyzePhoto(tracker.resultImage);
+                currentScreen.GenerateScreen(screenAnalyzer.textBlocks, tracker.resultImage.width(),
+                        tracker.resultImage.height());
+                screenAnalyzer.highlightTextOnResultImage(currentScreen.getAllElements());
+                switchStates(watVisionState.PAUSE_BEFORE_SCREEN_FEATURES);
             // What happens when we need to obtain the screen for feature purposes,
             // This is separate since the screen resolution is different!
             } else if (currentState == watVisionState.OBTAINING_SCREEN_FEATURES) {
