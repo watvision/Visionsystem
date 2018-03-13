@@ -167,8 +167,7 @@ public class WatVision {
                 screenAnalyzer.setKnownScreen(tracker.resultImage);
                 screenAnalyzer.setKnownScreenColour(tracker.resultImage);
 
-                //TODO: enable proximity field and update vibration based on it
-                //Vibrate.generateProximityField(currentScreen.getAllElements(), tracker.resultImage.width(), tracker.resultImage.height());
+                Vibrate.generateProximityField(currentScreen.getAllElements(), tracker.resultImage.width(), tracker.resultImage.height());
 
                 switchStates(watVisionState.TRACKING_MENU);
             // What happens if we are just doing normal tracking
@@ -181,12 +180,11 @@ public class WatVision {
                 }
 
                 if ( resultInfo.fingerData.tracked ) {
-
                     ScreenElement selectedElement = currentScreen.GetElementAtPoint(
                             resultInfo.fingerData.screenLocation.x,
                             resultInfo.fingerData.screenLocation.y);
-                    //TODO: enable proximity field and update vibration based on it
-                    //Vibrate.vibrate(resultInfo.fingerData.screenLocation);
+
+                    Vibrate.vibrate(resultInfo.fingerData.screenLocation);
 
                     if (selectedElement != null) {
                         String selectedElementText = selectedElement.GetElementDescription();

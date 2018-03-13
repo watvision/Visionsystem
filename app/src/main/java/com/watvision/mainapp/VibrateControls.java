@@ -3,6 +3,7 @@ package com.watvision.mainapp;
 import android.content.Context;
 import android.os.Vibrator;
 import android.os.VibrationEffect;
+import android.util.Log;
 
 import org.opencv.core.Point;
 
@@ -15,9 +16,13 @@ public class VibrateControls {
     int iter;
     int iter2;
 
+    // Tag for debugging
+    private static final String TAG = "VibrateControls";
+
     // Intensity settings for local vibration
-    private int[] intensity = {400, 350, 300, 250, 200, 150, 100};
+    private int[] phoneInt = {0, 350, 300, 250, 200, 150, 100};
     private int[] ringInt = {0, 63, 62, 61, 60, 59, 58};
+    private int currInt = 0;
 
     // Bluetooth services
     WatBlueToothService blueToothService;
@@ -26,6 +31,45 @@ public class VibrateControls {
     int scaleW;
     int scaleH;
 
+    public class FieldElement {
+        public int x1, x2, y1, y2, w;
+        public FieldElement(int X1, int Y1, int X2, int Y2, int W) {
+            x1 = X1;
+            y1 = Y1;
+            x2 = X2;
+            y2 = Y2;
+            w = W;
+        }
+
+        public int[][] borderFill(int[][] proxField, int maxWidth, int maxHeight) {
+            for(int x = x1; x <= x2; x++) {
+                if(x < 0 || x >= maxWidth)
+                    continue;
+                if(y1 >= 0 && proxField[x][y1] < w)
+                    proxField[x][y1] = w;
+                if(y2 < maxHeight && proxField[x][y2] < w)
+                    proxField[x][y2] = w;
+            }
+            for(int y = y1+1; y <= y2-1; y++) {
+                if(y < 0 || y >= maxHeight)
+                    continue;
+                if(x1 >= 0 && proxField[x1][y] < w)
+                    proxField[x1][y] = w;
+                if(x2 < maxWidth && proxField[x2][y] < w)
+                    proxField[x2][y] = w;
+            }
+            return proxField;
+        }
+
+        public void expandOneStep() {
+            x1--;
+            y1--;
+            x2++;
+            y2++;
+            w--;
+        }
+    }
+
     // Constructor
     public VibrateControls(Context appContext, WatBlueToothService bts) {
         BTEnable = false; //to change when bluetooth gets integrated
@@ -33,6 +77,7 @@ public class VibrateControls {
         blueToothService = bts;
         iter = 0;
         iter2 = 0;
+        Log.i(TAG, "Vibrate Controls setup successfully");
     }
 
     // Test function for local vibrate
@@ -45,7 +90,7 @@ public class VibrateControls {
             phoneVib.cancel();
         } else {
             if (start) {
-                long[] timings = {intensity[iter], intensity[iter], intensity[iter], intensity[iter], 200};
+                long[] timings = {phoneInt[iter], phoneInt[iter], phoneInt[iter], phoneInt[iter], 200};
                 int[] amp = {0, 255, 0, 255, 0};
                 phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
             } else {
@@ -59,40 +104,52 @@ public class VibrateControls {
 
     // Main vibration call
     public void vibrate(Point finger) {
-        int i = proxField[(int)(finger.x*scaleW)][(int)(finger.y*scaleH)];
-        if(blueToothService.isConnected()) {
-            blueToothService.vibrate(i);
-        } else {
-            long[] timings = {intensity[i], intensity[i], intensity[i], intensity[i], 200};
-            int[] amp = {0, 255, 0, 255, 0};
-            phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
+        int i = 0;
+        if(finger.x >= 0 && finger.x < 1 && finger.y >= 0 && finger.y < 1) {
+            int x = (int)(finger.x*scaleW);
+            int y = (int)(finger.y*scaleH);
+            i = proxField[x][y]%7;
+        }
+
+        if(i != currInt) {
+            currInt = i;
+            if (blueToothService.isConnected()) {
+                blueToothService.vibrate(currInt);
+            } else {
+                long[] timings = {phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], 200};
+                int[] amp = {0, 255, 0, 255, 0};
+                phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
+            }
         }
     }
 
     public void generateProximityField(ArrayList<ScreenElement> elements, int screenWidth, int screenHeight) {
-        scaleW = screenWidth;
-        scaleH = screenHeight;
-        proxField = new int[screenWidth/10][screenHeight/10];
+        Log.i(TAG, "Generating proximity field");
+        Log.i(TAG, "Screen height: " + screenHeight + " and screen width: " + screenWidth);
+        scaleW = screenWidth/10;
+        scaleH = screenHeight/10;
+        proxField = new int[scaleW][scaleH];
         ArrayList<FieldElement> borderExpansionList = new ArrayList<>();
         for(ScreenElement e: elements) {
-            int x1 = (int)(e.getX_base()*screenWidth/10);
-            int y1 = (int)(e.getY_base()*screenHeight/10);
-            int x2 = (int)((e.getX_base() + e.getX_Width())*screenWidth/10);
-            int y2 = (int)((e.getY_base() + e.getY_length())*screenHeight/10);
-            for(int i = x1; i < x2; i++) {
-                for(int j = y1; j < y2; j++) {
+            int x1 = (int) (e.getX_base()*scaleW);
+            int y1 = (int) (e.getY_base()*scaleH);
+            int x2 = (int) (x1 + e.getX_Width()*scaleW);
+            int y2 = (int) (y1 + e.getY_length()*scaleH);
+            for(int i = x1; i <= x2; i++) {
+                for(int j = y1; j <= y2; j++) {
                     proxField[i][j] = 7;
                 }
             }
             borderExpansionList.add(new FieldElement(x1-1, y1-1, x2+1, y2+1, 6));
         }
-        borderExpansion(borderExpansionList);
+        borderExpansion(borderExpansionList, scaleW, scaleH);
+        Log.i(TAG, "Field generated");
     }
 
-    private void borderExpansion(ArrayList<FieldElement> list) {
+    private void borderExpansion(ArrayList<FieldElement> list, int maxWidth, int maxHeight) {
         while(list.size() > 0) {
             for(int i = 0; i < list.size(); i++) {
-                proxField = list.get(i).borderFill(proxField);
+                proxField = list.get(i).borderFill(proxField, maxWidth, maxHeight);
                 if(list.get(i).w-1 > 0) {
                     list.get(i).expandOneStep();
                 } else {
@@ -100,6 +157,7 @@ public class VibrateControls {
                 }
             }
         }
+        Log.i(TAG, "Field expansion complete");
     }
 
 
