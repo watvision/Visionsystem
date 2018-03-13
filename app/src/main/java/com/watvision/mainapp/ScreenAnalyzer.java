@@ -132,7 +132,7 @@ public class ScreenAnalyzer {
 
         public boolean isChangedColour(MenuInfo inputMenu) {
 
-            return ((!inputMenu.redPower && this.redPower) ||
+            return (//(!inputMenu.redPower && this.redPower) ||
                     (!inputMenu.greenPower && this.greenPower) ||
                     (!inputMenu.bluePower && this.bluePower));
         }
