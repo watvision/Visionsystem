@@ -3,7 +3,9 @@ package com.watvision.mainapp;
 // Screen Element - Created 2018-01-13
 // Stores the information of an element of a screen (button, textbox, etc.)
 
-public class ScreenElement {
+import android.support.annotation.NonNull;
+
+public class ScreenElement implements Comparable<ScreenElement> {
 
     // Doubles are chosen since elements must be expressed as percentages of total screen Width
     // and total screen height.
@@ -44,4 +46,12 @@ public class ScreenElement {
     public double getX_Width() { return x_width; }
     public double getY_base() { return y_base; }
     public double getY_length() { return y_length; }
+
+    @Override
+    public int compareTo(ScreenElement compareScreenElement) {
+        return (int)(((this.y_base - compareScreenElement.y_base) + (this.x_base - compareScreenElement.x_base)/5)*100);
+        /* For Descending order do like this */
+        //return compareage-this.studentage;
+    }
+
 }

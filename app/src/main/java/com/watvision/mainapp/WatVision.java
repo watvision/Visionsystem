@@ -10,6 +10,8 @@ import android.view.Menu;
 import org.opencv.android.JavaCameraView;
 import org.opencv.core.Mat;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -398,6 +400,20 @@ public class WatVision {
 
     public void unlockCornerPoints() {
         tracker.unlockCornerPoints();
+    }
+
+    public void readOutAllScreenElements() {
+        ArrayList<ScreenElement> screenElements = currentScreen.getAllElements();
+        Collections.sort(screenElements);
+
+        for (int i = 0; i < screenElements.size(); i++) {
+            String textToRead = "Element " + i + "," + screenElements.get(i).GetElementDescription();
+            if (i == 0) {
+                textSpeaker.speak(textToRead, TextToSpeech.QUEUE_FLUSH, null);
+            } else {
+                textSpeaker.speak(textToRead, TextToSpeech.QUEUE_ADD, null);
+            }
+        }
     }
 
     public Mat getResultImage() {

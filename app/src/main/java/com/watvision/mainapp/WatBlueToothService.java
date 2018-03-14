@@ -149,7 +149,7 @@ public class WatBlueToothService {
 
                     if (specificValue == BUTTON_NEW_SCREEN_CODE) {
                         Log.d(TAG,"Read Button Pressed");
-                        parentVisionSystem.requestNewScreen();
+                        parentVisionSystem.readOutAllScreenElements();
                     }
                 }
 
