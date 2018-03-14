@@ -148,6 +148,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                     bluetoothText.setText("Device failed to connect");
                 } else if (inputMessage.arg1 == WatBlueToothService.bluetoothStates.DISCONNECTED.ordinal()) {
                     bluetoothText.setText("Device disconnected");
+                } else if (inputMessage.arg1 == WatBlueToothService.bluetoothStates.READY.ordinal()) {
+                    bluetoothText.setText("Device ready");
                 } else if (inputMessage.arg1 == -1) {
                     bluetoothText.setText("Initialized");
                 }
