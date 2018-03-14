@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context="com.watvision.mainapp.MainActivity">
 
-    <org.opencv.android.JavaCameraView
+    <com.watvision.mainapp.JavaCameraViewExd
         android:id="@+id/java_camera_view"
         android:layout_width="400dp"
         android:layout_height="350dp"

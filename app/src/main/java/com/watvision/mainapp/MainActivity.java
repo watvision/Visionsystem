@@ -10,12 +10,14 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
+import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -37,6 +39,8 @@ import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.android.Utils;
 
+import java.util.List;
+
 // Main Activity - Created 2018-01-13
 // Initiates the Camera, and other UI elements. This class deals with everything related to the
 // Android App. Think of it as a main class
@@ -47,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private static final String TAG = "MainActivity";
     private WatVision visionSystem;
 
-    JavaCameraView javaCameraView;
+    JavaCameraViewExd javaCameraView;
     TextView visionOutputText;
     TextView bluetoothText;
 
@@ -100,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         setContentView(R.layout.activity_main);
 
-        javaCameraView = (JavaCameraView) findViewById(R.id.java_camera_view);
+        javaCameraView = (JavaCameraViewExd) findViewById(R.id.java_camera_view);
         javaCameraView.setVisibility(View.VISIBLE);
         javaCameraView.setCvCameraViewListener(this);
 
@@ -246,6 +250,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mRgbaF = new Mat(height, width, CvType.CV_8UC4);
         mRgbaT = new Mat(width, width, CvType.CV_8UC4);
         mGray = new Mat(width, width, CvType.CV_8UC1);
+
+        javaCameraView.setTorch();
     }
 
     public void onCameraViewStopped() {
