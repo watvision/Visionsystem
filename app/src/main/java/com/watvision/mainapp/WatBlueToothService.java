@@ -31,7 +31,8 @@ public class WatBlueToothService {
     public enum bluetoothStates {
         CONNECTED,
         DISCONNECTED,
-        FAILED_TO_CONNECT
+        FAILED_TO_CONNECT,
+        READY
     }
 
     BluetoothGatt bluetoothGatt;
@@ -146,7 +147,7 @@ public class WatBlueToothService {
 
                     if (specificValue == BUTTON_NEW_SCREEN_CODE) {
                         Log.d(TAG,"Read Button Pressed");
-                        parentVisionSystem.requestNewScreen();
+                        parentVisionSystem.readOutAllScreenElements();
                     }
                 }
 
@@ -160,6 +161,8 @@ public class WatBlueToothService {
     };
 
     private void storeServices() {
+        Log.d(TAG,"Storing bluetooth services");
+
         //check mBluetoothGatt is available
         if (bluetoothGatt == null) {
             Log.e(TAG, "lost connection");
@@ -197,6 +200,11 @@ public class WatBlueToothService {
         if (buttonCharacteristic == null) {
             Log.d(TAG,"Button characteristic not found");
         }
+
+        // Indicate ready
+        Message msg = mainLoopHandler.obtainMessage();
+        msg.arg1 = bluetoothStates.READY.ordinal();
+        mainLoopHandler.sendMessage(msg);
     }
 
 
