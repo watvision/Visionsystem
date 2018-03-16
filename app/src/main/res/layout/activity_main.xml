@@ -33,13 +33,13 @@
             <ImageView
                 android:id="@+id/screen_similarity_view"
                 android:layout_width="200dp"
-                android:layout_height="200dp"
+                android:layout_height="150dp"
                 android:layout_weight="1" />
 
             <ImageView
                 android:id="@+id/result_image_view"
                 android:layout_width="200dp"
-                android:layout_height="200dp"
+                android:layout_height="150dp"
                 android:layout_weight="1" />
 
         </LinearLayout>
@@ -80,6 +80,29 @@
             android:layout_height="wrap_content"
             android:text="O"
             android:layout_alignParentLeft="true"
+            android:layout_alignParentBottom="true"
+            android:visibility="invisible"/>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
+
+        <Button
+            android:id="@+id/torch_on"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="O"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"  />
+
+        <Button
+            android:id="@+id/torch_off"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="X"
+            android:layout_alignParentRight="true"
             android:layout_alignParentBottom="true"
             android:visibility="invisible"/>
 

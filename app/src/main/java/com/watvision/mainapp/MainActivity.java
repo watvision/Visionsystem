@@ -209,6 +209,32 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 }
             }
         });
+
+        final Button torchSwitch = (Button) findViewById(R.id.torch_on);
+
+        torchSwitch.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (torchSwitch.getText().equals("O")) {
+                    Log.d(TAG,"Turning off torch");
+                    javaCameraView.unsetTorch();
+
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            torchSwitch.setText("X");
+                        }
+                    });
+                } else {
+                    Log.d(TAG,"Turning on torch");
+                    javaCameraView.setTorch();
+
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            torchSwitch.setText("O");
+                        }
+                    });
+                }
+            }
+        });
     }
 
     @Override
@@ -251,7 +277,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mRgbaT = new Mat(width, width, CvType.CV_8UC4);
         mGray = new Mat(width, width, CvType.CV_8UC1);
 
-        javaCameraView.setTorch();
+        if(javaCameraView.getTorchStatus())
+            javaCameraView.setTorch();
     }
 
     public void onCameraViewStopped() {
