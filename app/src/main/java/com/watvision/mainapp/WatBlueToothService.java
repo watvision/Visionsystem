@@ -53,8 +53,6 @@ public class WatBlueToothService {
     BluetoothGattCharacteristic buzzCharacteristic;
     BluetoothGattCharacteristic buttonCharacteristic;
 
-    BluetoothGattCharacteristic vibrateCharac;
-
     Handler mainLoopHandler;
 
     WatVision parentVisionSystem;
@@ -192,11 +190,7 @@ public class WatBlueToothService {
             Log.d(TAG,"Found characteristic: " + characList.get(i).getUuid().toString());
         }
 
-        if (buzzCharacteristic != null) {
-            byte[] value = new byte[1];
-            value[0] = (byte) 'A';
-            buzzCharacteristic.setValue(value);
-        } else {
+        if(buzzCharacteristic == null) {
             Log.d(TAG,"Buzz characteristic not found");
         }
 
@@ -254,23 +248,9 @@ public class WatBlueToothService {
         mainLoopHandler.sendMessage(msg);
     }
 
-    public void Buzz() {
-        if (buzzCharacteristic != null) {
-            boolean status = bluetoothGatt.writeCharacteristic(buzzCharacteristic);
-
-            if (status) {
-                Log.d(TAG,"Buzz Successful!");
-            } else {
-                Log.d(TAG,"Buzz Failure!");
-            }
-        } else {
-            Log.d(TAG,"Buzz characteristic is null");
-        }
-    }
-
     public void vibrate(int i) {
         byte[] val = {'A', (byte)i};
-        vibrateCharac.setValue(val);
+        buzzCharacteristic.setValue(val);
         if (buzzCharacteristic != null) {
             boolean status = bluetoothGatt.writeCharacteristic(buzzCharacteristic);
 
