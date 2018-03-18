@@ -148,6 +148,21 @@ public class VibrateControls {
             int y1 = (int) (e.getY_base()*scaleH);
             int x2 = (int) (x1 + e.getX_Width()*scaleW);
             int y2 = (int) (y1 + e.getY_length()*scaleH);
+
+            // Verify that the element isn't hanging off the screen in either direction
+            if (x2 >= scaleW) {
+                x2 = (scaleW - 1);
+            }
+            if (y2 >= scaleH) {
+                y2 = (scaleH - 1);
+            }
+            if (x1 < 0) {
+                x1 = 0;
+            }
+            if (y1 < 0) {
+                y1 = 0;
+            }
+
             for(int i = x1; i <= x2; i++) {
                 for(int j = y1; j <= y2; j++) {
                     proxField[i][j] = 7;
