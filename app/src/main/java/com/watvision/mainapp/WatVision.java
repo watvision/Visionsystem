@@ -66,6 +66,9 @@ public class WatVision {
     // A request for a new screen has been raised
     private boolean newScreenRequestFlag;
 
+    // A request for a screen readout has been raised
+    private boolean screenReadoutFlag;
+
     // The state enum
     private enum watVisionState {
         // Lower resolution state, when we are just findiing the aruco markers
@@ -123,6 +126,7 @@ public class WatVision {
         Vibrate = new VibrateControls(appContext, blueToothService);
 
         newScreenRequestFlag = false;
+        screenReadoutFlag = false;
 
         // Create repeating read task
         final Timer readTimer = new Timer();
@@ -179,6 +183,11 @@ public class WatVision {
                 // If the screen changed or we have a request to change then we should capture the new screen
                 if (!isSameMenu || newScreenRequestFlag) {
                         switchStates(watVisionState.WAITING_TO_CAPTURE_SCREEN);
+                }
+
+                if (screenReadoutFlag) {
+                    readOutAllScreenElements();
+                    screenReadoutFlag = false;
                 }
 
                 if ( resultInfo.fingerData.tracked ) {
@@ -379,6 +388,10 @@ public class WatVision {
 
     public void requestNewScreen() {
         newScreenRequestFlag = true;
+    }
+
+    public void requestScreenReadout() {
+        screenReadoutFlag = true;
     }
 
     public void destroy() {
