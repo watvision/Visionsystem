@@ -136,7 +136,7 @@ public class WatVision {
                 blueToothService.readButton();
             }
         };
-        readTimer.scheduleAtFixedRate(readTask,5000,1000);
+        readTimer.scheduleAtFixedRate(readTask,2000,1000);
     }
 
     // textSpeaker needs to be paused when the app is paused
@@ -417,6 +417,7 @@ public class WatVision {
     public void readOutAllScreenElements() {
         ArrayList<ScreenElement> screenElements = currentScreen.getAllElements();
         Collections.sort(screenElements);
+        Log.d(TAG,"Reading out all screen elements");
 
         for (int i = 0; i < screenElements.size(); i++) {
             String textToRead = "Element " + i + "," + screenElements.get(i).GetElementDescription();
