@@ -4,7 +4,7 @@ android {
     compileSdkVersion 26
     defaultConfig {
         applicationId "com.watvision.mainapp"
-        minSdkVersion 26
+        minSdkVersion 24
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -21,7 +21,7 @@ android {
         def path = ''
         def jake_path = new File('C:/Users/Jake')
         def craig_path = new File('C:/Users/Craig')
-        def liz_path = new File('C:/Users/Liz') //TODO: Update this with proper user
+        def liz_path = new File('C:/Users/Elizabeth Morrow') //TODO: Update this with proper user
         def joseph_path = new File('C:/Users/joe')
 
         if(jake_path.exists())
@@ -29,7 +29,7 @@ android {
         else if(craig_path.exists())
             path = "C:/Users/Craig/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
         else if(liz_path.exists())
-            path = "C:/Users/.." //TODO: Update this with proper user
+            path = "C:/Android/ndk-bundle/ndk-build.cmd"
         else if(joseph_path.exists())
             path = "C:/Users/joe/AppData/Local/Android/Sdk/ndk-bundle/ndk-build.cmd"
 
