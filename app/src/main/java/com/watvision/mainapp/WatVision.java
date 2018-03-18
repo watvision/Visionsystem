@@ -202,8 +202,11 @@ public class WatVision {
 
                         // If it is a new element
                         if (!selectedElementText.equals(lastReadText)) {
-                            //blueToothService.Buzz();
-                            readText(selectedElementText);
+                            // Only if we are in the tracking state should we read out. (If we have switched states don't read!)
+                            if (currentState == watVisionState.TRACKING_MENU) {
+                                //blueToothService.Buzz();
+                                readText(selectedElementText);
+                            }
                         }
 
                     } else {
