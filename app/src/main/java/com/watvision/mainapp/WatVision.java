@@ -204,6 +204,7 @@ public class WatVision {
                 }
             } else if (currentState == watVisionState.WAITING_TO_CAPTURE_SCREEN
                     || currentState == watVisionState.PAUSE_BEFORE_SCREEN_FEATURES) {
+                Vibrate.stopVibrating();
                 // Do nothing during the waiting state
             }
 

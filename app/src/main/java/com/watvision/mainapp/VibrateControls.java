@@ -123,6 +123,19 @@ public class VibrateControls {
         }
     }
 
+    public void stopVibrating(){
+        if(currInt != 0) {
+            currInt = 0;
+            if (blueToothService.isConnected()) {
+                blueToothService.vibrate(currInt);
+            } else {
+                long[] timings = {phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], 200};
+                int[] amp = {0, 255, 0, 255, 0};
+                phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
+            }
+        }
+    }
+
     public void generateProximityField(ArrayList<ScreenElement> elements, int screenWidth, int screenHeight) {
         Log.i(TAG, "Generating proximity field");
         Log.i(TAG, "Screen height: " + screenHeight + " and screen width: " + screenWidth);
