@@ -213,6 +213,9 @@ public class WatVision {
                         // If I move off the element this resets the last read text.
                         lastReadText = "No Element Present";
                     }
+                } else {
+                    // If finger data is not tracked stop vibrating
+                    Vibrate.stopVibrating();
                 }
             } else if (currentState == watVisionState.WAITING_TO_CAPTURE_SCREEN
                     || currentState == watVisionState.PAUSE_BEFORE_SCREEN_FEATURES) {
