@@ -272,6 +272,22 @@ public class WatBlueToothService {
         }
     }
 
+    public void Buzz() {
+        byte[] val = {'A'};
+        if (buzzCharacteristic != null) {
+            buzzCharacteristic.setValue(val);
+            boolean status = bluetoothGatt.writeCharacteristic(buzzCharacteristic);
+
+            if (status) {
+                Log.d(TAG,"Vibrate Successful!");
+            } else {
+                Log.d(TAG,"Vibrate Failure!");
+            }
+        } else {
+            Log.d(TAG,"Vibrate characteristic is null");
+        }
+    }
+
     private void broadcastUpdate(final String action,
                                  final BluetoothGattCharacteristic characteristic) {
 
