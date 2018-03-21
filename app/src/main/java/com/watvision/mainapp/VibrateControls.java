@@ -31,6 +31,9 @@ public class VibrateControls {
     int scaleW;
     int scaleH;
 
+    int totalW;
+    int totalH;
+
     public class FieldElement {
         public int x1, x2, y1, y2, w;
         public FieldElement(int X1, int Y1, int X2, int Y2, int W) {
@@ -105,34 +108,37 @@ public class VibrateControls {
     // Main vibration call
     public void vibrate(Point finger) {
         int i = 0;
-        if(finger.x >= 0 && finger.x < 1 && finger.y >= 0 && finger.y < 1) {
-            int x = (int)(finger.x*scaleW);
-            int y = (int)(finger.y*scaleH);
+        Log.d(TAG,"Incoming finger x:" + finger.x + " y: " + finger.y);
+        int x = (int)(finger.x*scaleW + 7);
+        int y = (int)(finger.y*scaleH + 7);
+        Log.d(TAG,"Calculated x:" + x + " y: " + y);
+        if(x >= 0 && x < totalW && y >= 0 && y < totalH) {
+            Log.d(TAG,"Set Vibration!");
             i = proxField[x][y]%7;
+        } else {
+            stopVibrating();
         }
 
-        if(i != currInt) {
-            currInt = i;
-            if (blueToothService.isConnected()) {
-                blueToothService.vibrate(currInt);
-            } else {
-                long[] timings = {phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], 200};
-                int[] amp = {0, 255, 0, 255, 0};
-                phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
-            }
+        currInt = i;
+        if (blueToothService.isConnected()) {
+            Log.d(TAG,"Sending intensity: " + currInt);
+            blueToothService.vibrate(ringInt[currInt]);
+        } else {
+            long[] timings = {phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], 200};
+            int[] amp = {0, 255, 0, 255, 0};
+            phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
         }
     }
 
     public void stopVibrating(){
-        if(currInt != 0) {
-            currInt = 0;
-            if (blueToothService.isConnected()) {
-                blueToothService.vibrate(currInt);
-            } else {
-                long[] timings = {phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], 200};
-                int[] amp = {0, 255, 0, 255, 0};
-                phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
-            }
+        Log.d(TAG,"Stopping vibration");
+        currInt = 0;
+        if (blueToothService.isConnected()) {
+            blueToothService.vibrate(ringInt[currInt]);
+        } else {
+            long[] timings = {phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], phoneInt[currInt], 200};
+            int[] amp = {0, 255, 0, 255, 0};
+            phoneVib.vibrate(VibrationEffect.createWaveform(timings, amp, 0));
         }
     }
 
@@ -141,20 +147,22 @@ public class VibrateControls {
         Log.i(TAG, "Screen height: " + screenHeight + " and screen width: " + screenWidth);
         scaleW = screenWidth/10;
         scaleH = screenHeight/10;
-        proxField = new int[scaleW][scaleH];
+        totalW = scaleW + 14;
+        totalH = scaleH + 14;
+        proxField = new int[totalW][totalH];
         ArrayList<FieldElement> borderExpansionList = new ArrayList<>();
         for(ScreenElement e: elements) {
-            int x1 = (int) (e.getX_base()*scaleW);
-            int y1 = (int) (e.getY_base()*scaleH);
+            int x1 = (int) (e.getX_base()*scaleW + 7);
+            int y1 = (int) (e.getY_base()*scaleH + 7);
             int x2 = (int) (x1 + e.getX_Width()*scaleW);
             int y2 = (int) (y1 + e.getY_length()*scaleH);
 
             // Verify that the element isn't hanging off the screen in either direction
-            if (x2 >= scaleW) {
-                x2 = (scaleW - 1);
+            if (x2 >= totalW) {
+                x2 = (totalW - 1);
             }
-            if (y2 >= scaleH) {
-                y2 = (scaleH - 1);
+            if (y2 >= totalH) {
+                y2 = (totalH - 1);
             }
             if (x1 < 0) {
                 x1 = 0;
@@ -170,8 +178,16 @@ public class VibrateControls {
             }
             borderExpansionList.add(new FieldElement(x1-1, y1-1, x2+1, y2+1, 6));
         }
-        borderExpansion(borderExpansionList, scaleW, scaleH);
+        borderExpansion(borderExpansionList, totalW, totalH);
         Log.i(TAG, "Field generated");
+
+        for (int j = 0; j < totalH; j++) {
+            String printString = "";
+            for (int i = 0; i < totalW; i++) {
+                printString = printString + proxField[i][j] + ",";
+            }
+            Log.d(TAG,printString);
+        }
     }
 
     private void borderExpansion(ArrayList<FieldElement> list, int maxWidth, int maxHeight) {

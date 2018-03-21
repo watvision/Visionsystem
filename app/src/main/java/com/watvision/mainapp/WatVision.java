@@ -305,6 +305,8 @@ public class WatVision {
 
         Log.d(TAG,"Entering state: " + inputState.toString());
 
+        Vibrate.stopVibrating();
+
         switch (inputState) {
             case TRACKING_MENU:
 
