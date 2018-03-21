@@ -106,7 +106,7 @@ public class VibrateControls {
     }
 
     // Main vibration call
-    public void vibrate(Point finger) {
+    public void vibrate(Point finger, boolean onElement) {
         int i = 0;
         Log.d(TAG,"Incoming finger x:" + finger.x + " y: " + finger.y);
         int x = (int)(finger.x*scaleW + 7);
@@ -115,6 +115,13 @@ public class VibrateControls {
         if(x >= 0 && x < totalW && y >= 0 && y < totalH) {
             Log.d(TAG,"Set Vibration!");
             i = proxField[x][y];
+            // If we aren't actually on the element we shouldn't indicate we are
+            if (i == 7 && !onElement) {
+                i = 6;
+            }
+            if (onElement) {
+                i = 7;
+            }
         } else {
             stopVibrating();
         }

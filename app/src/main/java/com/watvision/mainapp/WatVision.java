@@ -199,10 +199,11 @@ public class WatVision {
                             resultInfo.fingerData.screenLocation.x,
                             resultInfo.fingerData.screenLocation.y);
 
-                    Vibrate.vibrate(resultInfo.fingerData.screenLocation);
+                    Boolean onElement = false;
 
                     if (selectedElement != null) {
                         String selectedElementText = selectedElement.GetElementDescription();
+                        onElement = true;
 
                         // If it is a new element
                         if (!selectedElementText.equals(lastReadText)) {
@@ -217,6 +218,9 @@ public class WatVision {
                         // If I move off the element this resets the last read text.
                         lastReadText = "No Element Present";
                     }
+
+                    Vibrate.vibrate(resultInfo.fingerData.screenLocation, onElement);
+
                 } else {
                     // If finger data is not tracked stop vibrating
                     Vibrate.stopVibrating();
