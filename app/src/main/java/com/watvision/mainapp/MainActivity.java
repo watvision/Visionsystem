@@ -91,6 +91,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     BluetoothAdapter btAdapter;
     BluetoothLeScanner btScanner;
 
+    // Variable to control torch on camera
+    Button torchSwitch;
+
     // Constructor
     public MainActivity() {
         Log.i(TAG, "Instantiated new " + this.getClass());
@@ -169,6 +172,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         visionSystem = new WatVision(getApplicationContext(), btScanner, visionSystemHandler);
 
         visionSystem.setJavaCameraViewRef(javaCameraView);
+        visionSystem.setParentActivity(this);
 
         // Enable the code below to allow for testvibrate testing
         // Touch and hold screen anywhere to call testvibrate
@@ -212,31 +216,41 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             }
         });
 
-        final Button torchSwitch = (Button) findViewById(R.id.torch_on);
+        torchSwitch = (Button) findViewById(R.id.torch_on);
 
         torchSwitch.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (torchSwitch.getText().equals("O")) {
-                    Log.d(TAG,"Turning off torch");
-                    javaCameraView.unsetTorch();
-
                     runOnUiThread(new Runnable() {
                         public void run() {
+                            unSetTorch();
                             torchSwitch.setText("X");
                         }
                     });
                 } else {
-                    Log.d(TAG,"Turning on torch");
-                    javaCameraView.setTorch();
-
                     runOnUiThread(new Runnable() {
                         public void run() {
                             torchSwitch.setText("O");
+                            setTorch();
                         }
                     });
                 }
             }
         });
+    }
+
+    public void setTorch() {
+        if (torchSwitch.getText().equals("O")) {
+            Log.d(TAG,"Turning on torch");
+            javaCameraView.setTorch();
+        }
+    }
+
+    public void unSetTorch() {
+        if (torchSwitch.getText().equals("O")) {
+            Log.d(TAG,"Turning off torch");
+            javaCameraView.unsetTorch();
+        }
     }
 
     @Override

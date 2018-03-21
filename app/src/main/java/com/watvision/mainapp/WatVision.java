@@ -1,5 +1,6 @@
 package com.watvision.mainapp;
 
+import android.app.Activity;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.content.Context;
 import android.os.Handler;
@@ -50,7 +51,7 @@ public class WatVision {
     Context mainContext;
 
     // Access to the camera
-    private JavaCameraView camera;
+    private JavaCameraViewExd camera;
 
     // VibrateController
     public VibrateControls Vibrate;
@@ -68,6 +69,9 @@ public class WatVision {
 
     // A request for a screen readout has been raised
     private boolean screenReadoutFlag;
+
+    // The parent activity
+    MainActivity parentActivity;
 
     // The state enum
     private enum watVisionState {
@@ -294,8 +298,12 @@ public class WatVision {
     }
     */
 
-    public void setJavaCameraViewRef(JavaCameraView inputCamera) {
+    public void setJavaCameraViewRef(JavaCameraViewExd inputCamera) {
         camera = inputCamera;
+    }
+
+    public void setParentActivity(MainActivity inActivity) {
+        parentActivity = inActivity;
     }
 
     private void switchStates(watVisionState inputState) {
@@ -309,6 +317,17 @@ public class WatVision {
 
         switch (inputState) {
             case TRACKING_MENU:
+
+                // Get a handler that can be used to post to the main thread
+                mainHandler = new Handler(mainContext.getMainLooper());
+
+                myRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        parentActivity.setTorch();
+                    } // This is your code
+                };
+                mainHandler.post(myRunnable);
 
                 readText("Menu analysis finished, please explore the menu");
                 break;
@@ -359,6 +378,7 @@ public class WatVision {
                         camera.disableView();
                         camera.setMaxFrameSize(highResMaxWidth,highResMaxHeight);
                         camera.enableView();
+                        parentActivity.unSetTorch();
                     } // This is your code
                 };
                 mainHandler.post(myRunnable);
