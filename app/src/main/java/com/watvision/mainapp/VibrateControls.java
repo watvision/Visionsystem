@@ -20,8 +20,8 @@ public class VibrateControls {
     private static final String TAG = "VibrateControls";
 
     // Intensity settings for local vibration
-    private int[] phoneInt = {0, 350, 300, 250, 200, 150, 100};
-    private int[] ringInt = {0, 63, 62, 61, 60, 59, 58};
+    private int[] phoneInt = {0, 350, 300, 250, 200, 150, 100, 0};
+    private int[] ringInt = {0, 69, 68, 67, 66, 65, 64,51};
     private int currInt = 0;
 
     // Bluetooth services
@@ -114,7 +114,7 @@ public class VibrateControls {
         Log.d(TAG,"Calculated x:" + x + " y: " + y);
         if(x >= 0 && x < totalW && y >= 0 && y < totalH) {
             Log.d(TAG,"Set Vibration!");
-            i = proxField[x][y]%7;
+            i = proxField[x][y];
         } else {
             stopVibrating();
         }
@@ -145,8 +145,8 @@ public class VibrateControls {
     public void generateProximityField(ArrayList<ScreenElement> elements, int screenWidth, int screenHeight) {
         Log.i(TAG, "Generating proximity field");
         Log.i(TAG, "Screen height: " + screenHeight + " and screen width: " + screenWidth);
-        scaleW = screenWidth/10;
-        scaleH = screenHeight/10;
+        scaleW = screenWidth/8;
+        scaleH = screenHeight/8;
         totalW = scaleW + 14;
         totalH = scaleH + 14;
         proxField = new int[totalW][totalH];
