@@ -73,6 +73,9 @@ public class WatVision {
     // The parent activity
     MainActivity parentActivity;
 
+    // Text to read out corresponding to element IDs
+    private static String[] numberToPositionInList = {"First","Second","Third","Fourth","Fifth","Sixth"};
+
     // The state enum
     private enum watVisionState {
         // Lower resolution state, when we are just findiing the aruco markers
@@ -452,12 +455,14 @@ public class WatVision {
         Log.d(TAG,"Reading out all screen elements");
 
         for (int i = 0; i < screenElements.size(); i++) {
-            String textToRead = "Element " + i + "," + screenElements.get(i).GetElementDescription();
+            String textToRead = numberToPositionInList[i] + " Text ";
             if (i == 0) {
                 textSpeaker.speak(textToRead, TextToSpeech.QUEUE_FLUSH, null);
             } else {
                 textSpeaker.speak(textToRead, TextToSpeech.QUEUE_ADD, null);
             }
+            textSpeaker.playSilentUtterance(200,TextToSpeech.QUEUE_ADD,null);
+            textSpeaker.speak(screenElements.get(i).GetElementDescription(),TextToSpeech.QUEUE_ADD,null);
         }
     }
 
