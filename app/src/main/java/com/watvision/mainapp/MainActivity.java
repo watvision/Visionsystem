@@ -177,10 +177,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                if(event.getAction() == MotionEvent.ACTION_DOWN);
-                    //visionSystem.Vibrate.testvibrate(true);
-                else if(event.getAction() == MotionEvent.ACTION_UP);
-                    //visionSystem.Vibrate.testvibrate(false);
+                if(event.getAction() == MotionEvent.ACTION_DOWN)
+                    visionSystem.Vibrate.testvibrate(true);
+                else if(event.getAction() == MotionEvent.ACTION_UP)
+                    visionSystem.Vibrate.testvibrate(false);
                 return true;
             }
 

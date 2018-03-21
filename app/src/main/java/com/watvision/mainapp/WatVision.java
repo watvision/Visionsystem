@@ -52,6 +52,9 @@ public class WatVision {
     // Access to the camera
     private JavaCameraView camera;
 
+    // VibrateController
+    public VibrateControls Vibrate;
+
     public static int lowResMaxWidth = 800;
     public static int lowResMaxHeight = 800;
     public static int highResMaxWidth = 1500;
@@ -120,6 +123,8 @@ public class WatVision {
 
         blueToothService.InitiateConnection();
 
+        Vibrate = new VibrateControls(appContext, blueToothService);
+
         newScreenRequestFlag = false;
         screenReadoutFlag = false;
 
@@ -168,6 +173,8 @@ public class WatVision {
                 screenAnalyzer.setKnownScreen(tracker.resultImage);
                 screenAnalyzer.setKnownScreenColour(tracker.resultImage);
 
+                Vibrate.generateProximityField(currentScreen.getAllElements(), tracker.resultImage.width(), tracker.resultImage.height());
+
                 switchStates(watVisionState.TRACKING_MENU);
             // What happens if we are just doing normal tracking
             } else if (currentState == watVisionState.TRACKING_MENU) {
@@ -179,14 +186,16 @@ public class WatVision {
                 }
 
                 if (screenReadoutFlag) {
-                    //readOutAllScreenElements();
-                    //screenReadoutFlag = false;
+                    readOutAllScreenElements();
+                    screenReadoutFlag = false;
                 }
 
                 if ( resultInfo.fingerData.tracked ) {
                     ScreenElement selectedElement = currentScreen.GetElementAtPoint(
                             resultInfo.fingerData.screenLocation.x,
                             resultInfo.fingerData.screenLocation.y);
+
+                    Vibrate.vibrate(resultInfo.fingerData.screenLocation);
 
                     if (selectedElement != null) {
                         String selectedElementText = selectedElement.GetElementDescription();
@@ -195,7 +204,7 @@ public class WatVision {
                         if (!selectedElementText.equals(lastReadText)) {
                             // Only if we are in the tracking state should we read out. (If we have switched states don't read!)
                             if (currentState == watVisionState.TRACKING_MENU) {
-                                blueToothService.Buzz();
+                                //blueToothService.Buzz();
                                 readText(selectedElementText);
                             }
                         }
@@ -205,9 +214,12 @@ public class WatVision {
                         lastReadText = "No Element Present";
                     }
                 } else {
+                    // If finger data is not tracked stop vibrating
+                    Vibrate.stopVibrating();
                 }
             } else if (currentState == watVisionState.WAITING_TO_CAPTURE_SCREEN
                     || currentState == watVisionState.PAUSE_BEFORE_SCREEN_FEATURES) {
+                Vibrate.stopVibrating();
                 // Do nothing during the waiting state
             }
 
