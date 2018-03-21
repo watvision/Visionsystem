@@ -364,8 +364,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         } else {
             Bitmap initial_bm;
 
-            initial_bm = Bitmap.createBitmap(resultMat.cols(), resultMat.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(resultMat, initial_bm);
+            Mat resizedImage = new Mat(resultMat.rows(),(int) (resultMat.cols()*0.561165),resultMat.type());
+            Imgproc.resize(resultMat, resizedImage, resizedImage.size(), 0, 0, Imgproc.INTER_CUBIC);
+
+            initial_bm = Bitmap.createBitmap(resizedImage.cols(), resizedImage.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(resizedImage, initial_bm);
 
             final Bitmap highlight_bm = initial_bm.copy(initial_bm.getConfig(),true);
 
