@@ -185,7 +185,7 @@ public class WatVision {
                 switchStates(watVisionState.TRACKING_MENU);
             // What happens if we are just doing normal tracking
             } else if (currentState == watVisionState.TRACKING_MENU) {
-                Boolean isSameMenu = screenAnalyzer.isSameScreenColour(tracker.resultImage);
+                Boolean isSameMenu = screenAnalyzer.isSameScreen(tracker.resultImage);
 
                 // If the screen changed or we have a request to change then we should capture the new screen
                 if (!isSameMenu || newScreenRequestFlag) {
