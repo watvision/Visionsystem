@@ -148,7 +148,7 @@ public class ScreenAnalyzer {
                 null);
 
         visionBuilder.setVisionRequestInitializer(
-                new VisionRequestInitializer("***REMOVED***"));
+                new VisionRequestInitializer("YOUR_API_KEY_HERE"));
 
 
         visionBuilder.build();
